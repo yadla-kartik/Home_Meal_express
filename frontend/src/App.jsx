@@ -1,7 +1,9 @@
 import React from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Dashboard from './apps/user/Dashboard'
+import Dashboardchef from './App/Chef/Dashboard'
 import Login from './apps/user/Login'
+
 import Otp from './apps/user/Otp'
 
 function App() {
@@ -16,3 +18,4 @@ function App() {
 }
 
 export default App
+
