@@ -7,20 +7,22 @@ function Dashboard() {
     <div className="min-h-screen bg-[#f8fafc]">
       <Navbar />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-4 py-8">
-        <div className="w-full overflow-hidden rounded-3xl bg-white shadow-[0_16px_40px_rgba(15,23,42,0.12)]">
+      <section className="w-full pt-4">
+        <div className="w-full">
           <img
             src={dashboardImage}
             alt="Dashboard"
-            className="h-56 w-full object-cover sm:h-72 md:h-80"
+            className="w-full max-h-[380px] object-cover md:max-h-[440px]"
           />
         </div>
+      </section>
 
+      <main className="mx-auto flex w-full max-w-6xl flex-col items-center gap-6 px-2 pb-8 pt-6 sm:px-3">
         <div className="flex w-full max-w-2xl flex-col items-center gap-3">
           <p className="text-base font-semibold text-[#0f172a]">
             Enter your PNR number
           </p>
-          <div className="flex w-96 items-center gap-3 rounded-2xl bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          <div className="flex w-full max-w-md items-center gap-3 rounded-2xl bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
             <input
               type="text"
               placeholder="PNR number"

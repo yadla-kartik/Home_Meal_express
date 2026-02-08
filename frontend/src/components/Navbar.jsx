@@ -9,7 +9,7 @@ function Navbar() {
           <img src={logo} alt="Home Meal Express" className="h-28 w-auto" />
           <div className="hidden items-center gap-2 rounded-full border border-[#ffe6d6] bg-[#fff6ef] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f97316] sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" />
-            From local chefs
+            Fresh. Home-Cooked.
           </div>
         </div>
 
