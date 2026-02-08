@@ -1,0 +1,109 @@
+import React, { useRef, useState } from 'react'
+
+function Otp({ onVerify }) {
+  const OTP_LENGTH = 6
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''))
+  const inputsRef = useRef([])
+
+  const handleChange = (e, index) => {
+    const value = e.target.value.replace(/\D/g, '')
+    if (!value) return
+
+    const newOtp = [...otp]
+    newOtp[index] = value[value.length - 1]
+    setOtp(newOtp)
+
+    if (index < OTP_LENGTH - 1) {
+      inputsRef.current[index + 1].focus()
+    }
+  }
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      const newOtp = [...otp]
+      if (otp[index]) {
+        newOtp[index] = ''
+        setOtp(newOtp)
+      } else if (index > 0) {
+        inputsRef.current[index - 1].focus()
+      }
+    }
+  }
+
+  const handlePaste = (e) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
+    if (pasted.length === OTP_LENGTH) {
+      setOtp(pasted.split(''))
+      inputsRef.current[OTP_LENGTH - 1].focus()
+    }
+  }
+
+  const handleVerify = () => {
+    const finalOtp = otp.join('')
+    if (finalOtp.length === OTP_LENGTH) {
+      onVerify && onVerify(finalOtp)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4">
+      <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-[0_18px_36px_rgba(17,24,39,0.12)]">
+        <h2 className="text-xl font-semibold text-[#0f172a] text-center">
+          Verify OTP
+        </h2>
+        <p className="mt-1 text-sm text-[#64748b] text-center">
+          Enter the 6-digit code sent to your phone
+        </p>
+
+        {/* OTP boxes */}
+        <div
+          className="mt-6 flex justify-between gap-2"
+          onPaste={handlePaste}
+        >
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputsRef.current[index] = el)}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(e, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className="
+                h-12 w-12 rounded-xl
+                border border-[#d1d5db]
+                text-center text-lg font-semibold
+                text-[#111827]
+                outline-none
+                transition
+                focus:border-[#f97316]
+                focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]
+              "
+            />
+          ))}
+        </div>
+
+        {/* Verify button */}
+        <button
+          onClick={handleVerify}
+          className="
+            mt-6 h-11.5 w-full rounded-xl
+            bg-[linear-gradient(135deg,#f97316,#fb923c)]
+            text-white text-[15px] font-semibold
+            shadow-[0_14px_24px_rgba(249,115,22,0.28)]
+            transition active:scale-[0.98]
+          "
+        >
+          Verify OTP
+        </button>
+
+        <p className="mt-4 text-center text-sm text-[#64748b]">
+          Didn’t receive the code? <span className="text-[#f97316] font-medium cursor-pointer">Resend</span>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default Otp
