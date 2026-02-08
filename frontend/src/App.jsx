@@ -1,19 +1,21 @@
 import React from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Dashboard from './apps/user/Dashboard'
 import Dashboardchef from './App/Chef/Dashboard'
 import Login from './apps/user/Login'
-import Popuplogin from './App/Chef/components/Popuplogin'
-import Register from './App/Chef/Register'
+
+import Otp from './apps/user/Otp'
 
 function App() {
   return (
-    <div>
-        <Login/>
-        <Dashboard/>
-        <Register />
-        <Dashboardchef />
-        <Popuplogin />
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/otp" element={<Otp />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Routes>
   )
 }
+
 export default App
+
