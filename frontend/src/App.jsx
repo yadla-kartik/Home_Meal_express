@@ -1,11 +1,12 @@
 import React from 'react'
-import Login from './components/common/Login'
+import Dashboard from './apps/user/Dashboard'
+import Login from './apps/user/Login'
 
 function App() {
   return (
     <div>
         <Login/>
-        <Otp/>
+        <Dashboard/>
     </div>
   )
 }

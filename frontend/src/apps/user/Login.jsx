@@ -332,7 +332,7 @@ function Login({ onContinue, onGoogle }) {
                 name="phone"
                 type="tel"
                 inputMode="numeric"
-                placeholder="10-digit number"
+                placeholder="Enter your phone number"
                 value={form.phone}
                 onChange={handlePhoneChange}
                 pattern="\d{10}"
