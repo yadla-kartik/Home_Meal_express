@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import google from '../../assets/google.png'
 import logo from '../../assets/logo.png'
+import { cookieCheck, userLogin } from '../../../services/loginService'
+import { useNavigate } from 'react-router-dom'
 
 const COUNTRY_CODES = [
   { code: '+1', country: 'United States / Canada' },
@@ -236,16 +238,32 @@ const COUNTRY_CODES = [
   { code: '+1939', country: 'Puerto Rico (Alt)' },
 ]
 
-function Login({ onContinue, onGoogle }) {
+function Login() {
+  const navigate = useNavigate()
+
   const [form, setForm] = useState({
     name: '',
-    countryCode: '+91',
-    phone: '',
+    country: '+91',
+    mobileNo: '',
   })
 
   const sortedCodes = useMemo(() => {
     return [...COUNTRY_CODES].sort((a, b) => a.country.localeCompare(b.country))
   }, [])
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const res = await cookieCheck()
+      if (res?.user) {
+        navigate('/dashboard')
+      }
+      else{
+        navigate('/login')
+      }
+    }
+
+    checkAuth()
+  }, [navigate])
 
   const updateField = (key) => (event) => {
     const value = event.target.value
@@ -254,13 +272,17 @@ function Login({ onContinue, onGoogle }) {
 
   const handlePhoneChange = (event) => {
     const digitsOnly = event.target.value.replace(/\D/g, '').slice(0, 10)
-    setForm((prev) => ({ ...prev, phone: digitsOnly }))
+    setForm((prev) => ({ ...prev, mobileNo: digitsOnly }))
   }
 
-  const handleContinue = (event) => {
+  const handleContinue = async (event) => {
     event.preventDefault()
-    if (onContinue) {
-      onContinue(form)
+
+    const res = await userLogin(form)
+    if (res?.message === 'Login Successful') {
+      navigate('/dashboard')
+    } else {
+      alert('Invalid Login')
     }
   }
 
@@ -310,12 +332,12 @@ function Login({ onContinue, onGoogle }) {
               <div className="w-20">
                 <input
                   id="login-country-code"
-                  name="countryCode"
+                  name="country"
                   list="country-code-list"
                   type="tel"
                   inputMode="tel"
-                  value={form.countryCode}
-                  onChange={updateField('countryCode')}
+                  value={form.country}
+                  onChange={updateField('country')}
                   aria-label="Country code"
                   className="h-11 w-full rounded-xl border border-[#d1d5db] px-3 text-sm text-[#111827] outline-none transition focus:border-[#f97316] focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]"
                 />
@@ -329,11 +351,11 @@ function Login({ onContinue, onGoogle }) {
               </div>
               <input
                 id="login-phone"
-                name="phone"
+                name="mobileNo"
                 type="tel"
                 inputMode="numeric"
                 placeholder="Enter your phone number"
-                value={form.phone}
+                value={form.mobileNo}
                 onChange={handlePhoneChange}
                 pattern="\d{10}"
                 maxLength={10}
@@ -349,7 +371,6 @@ function Login({ onContinue, onGoogle }) {
           <button
             type="button"
             className="flex justify-center items-center w-full rounded-full border border-[#e2e8f0] bg-white p-3 shadow-[0_8px_14px_rgba(15,23,42,0.08)] text-[15px] font-semibold text-[#0f172a] transition active:scale-[0.98] cursor-pointer"
-            onClick={() => onGoogle && onGoogle()}
           >
             <img src={google} alt="Google logo" className="h-5 w-5" />
             <p className="ml-2">Continue with Google</p>
