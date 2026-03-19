@@ -66,12 +66,12 @@ function Otp({ onVerify }) {
   const formatTime = (value) => String(value).padStart(2, '0')
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-[0_18px_36px_rgba(17,24,39,0.12)]">
-        <h2 className="text-xl font-semibold text-[#0f172a] text-center">
+    <div className="theme-app-shell min-h-screen flex items-center justify-center px-4">
+      <div className="theme-card w-full max-w-sm rounded-2xl p-6">
+        <h2 className="theme-heading text-xl font-semibold text-center">
           Verify OTP
         </h2>
-        <p className="mt-1 text-sm text-[#64748b] text-center">
+        <p className="theme-muted mt-1 text-sm text-center">
           Enter the 6-digit code sent to your phone
         </p>
 
@@ -87,14 +87,9 @@ function Otp({ onVerify }) {
               onChange={(e) => handleChange(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="
+                theme-input
                 h-12 w-12 rounded-xl
-                border border-[#d1d5db]
                 text-center text-lg font-semibold
-                text-[#111827]
-                outline-none
-                transition
-                focus:border-[#f97316]
-                focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]
               "
             />
           ))}
@@ -104,12 +99,10 @@ function Otp({ onVerify }) {
           onClick={handleVerify}
           disabled={!isComplete}
           className={`
-            mt-6 h-11.5 w-full rounded-xl
-            text-[15px] font-semibold
-            transition active:scale-[0.98]
+            mt-6 h-11.5 w-full rounded-xl text-[15px] font-semibold transition active:scale-[0.98]
             ${
               isComplete
-                ? 'bg-[linear-gradient(135deg,#f97316,#fb923c)] text-white shadow-[0_14px_24px_rgba(249,115,22,0.28)] cursor-pointer'
+                ? 'theme-primary-button cursor-pointer'
                 : 'bg-[#e2e8f0] text-[#94a3b8] cursor-not-allowed'
             }
           `}
@@ -117,7 +110,7 @@ function Otp({ onVerify }) {
           Verify OTP
         </button>
 
-        <p className="mt-4 text-center text-sm text-[#64748b]">
+        <p className="theme-muted mt-4 text-center text-sm">
           Didn't receive the code?{' '}
           <button
             type="button"
@@ -125,7 +118,7 @@ function Otp({ onVerify }) {
             className={`font-medium transition ${
               secondsLeft > 0
                 ? 'text-[#3b82f6] cursor-not-allowed'
-                : 'text-[#f97316] cursor-pointer'
+                : 'text-[var(--theme-accent)] cursor-pointer'
             }`}
           >
             {secondsLeft > 0

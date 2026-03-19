@@ -1,0 +1,183 @@
+:root {
+  --theme-body-bg: #f8fafc;
+  --theme-app-bg: #f8fafc;
+  --theme-page-bg: radial-gradient(circle at top, #fff3d9, #f3f7ff 55%, #eef2f5);
+  --theme-surface: #ffffff;
+  --theme-surface-soft: rgba(255, 255, 255, 0.88);
+  --theme-surface-border: rgba(15, 23, 42, 0.08);
+  --theme-border: #d1d5db;
+  --theme-text: #0f172a;
+  --theme-text-strong: #111827;
+  --theme-label: #1f2937;
+  --theme-muted: #64748b;
+  --theme-accent: #f97316;
+  --theme-important: #ec2828;
+  --theme-accent-soft: #fff3e7;
+  --theme-chip-border: #fbd7c2;
+  --theme-ring: rgba(249, 115, 22, 0.18);
+  --theme-shadow-card: 0 18px 36px rgba(17, 24, 39, 0.12);
+  --theme-shadow-card-lg: 0 24px 48px rgba(15, 23, 42, 0.18);
+  --theme-shadow-soft: 0 8px 14px rgba(15, 23, 42, 0.08);
+  --theme-shadow-search: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --theme-shadow-button: 0 14px 24px rgba(249, 115, 22, 0.28);
+  --theme-gradient-primary: linear-gradient(135deg, #f97316, #fb923c);
+  --theme-cursor-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%23000000' d='M3 2.5v14.8l3.95-4.3 2.4 4.5 2.15-1.15-2.35-4.45 5.4-.05z'/%3E%3C/svg%3E");
+  --theme-cursor-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath fill='%23000000' d='M9.35 2.2c.58 0 1.05.47 1.05 1.05v4.1h1.2c.58 0 1.05.47 1.05 1.05V9h1.15c.58 0 1.05.47 1.05 1.05v1h.95c.58 0 1.05.47 1.05 1.05v2.25c0 2.84-2.3 5.15-5.15 5.15H9.8a4.5 4.5 0 0 1-3.82-2.1l-2.5-4.02a1.1 1.1 0 0 1 1.84-1.2l1.48 2.08V3.25c0-.58.47-1.05 1.05-1.05s1.05.47 1.05 1.05v6h.45v-6c0-.58.47-1.05 1.05-1.05Z'/%3E%3C/svg%3E");
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--theme-body-bg);
+  color: var(--theme-text);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  cursor: var(--theme-cursor-default) 2 2, auto;
+}
+
+::selection {
+  background: rgba(249, 115, 22, 0.18);
+}
+
+.theme-page-shell {
+  background: var(--theme-page-bg);
+}
+
+.theme-app-shell {
+  background: var(--theme-app-bg);
+}
+
+.theme-card {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-surface-border);
+  box-shadow: var(--theme-shadow-card);
+}
+
+.theme-card-lg {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-surface-border);
+  box-shadow: var(--theme-shadow-card-lg);
+}
+
+.theme-badge {
+  border: 1px solid var(--theme-chip-border);
+  background: var(--theme-surface-soft);
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+}
+
+.theme-heading {
+  color: var(--theme-text);
+}
+
+.theme-muted {
+  color: var(--theme-muted);
+}
+
+.theme-label {
+  color: var(--theme-label);
+}
+
+.theme-input {
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-strong);
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-input::placeholder {
+  color: #94a3b8;
+}
+
+.theme-input:hover {
+  border-color: #f6b48a;
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.03),
+    0 0 0 1px rgba(249, 115, 22, 0.08);
+}
+
+.theme-input:focus {
+  border-color: var(--theme-accent);
+  background: #fffdfb;
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.03),
+    0 0 0 4px var(--theme-ring);
+}
+
+.theme-input:focus:hover {
+  border-color: var(--theme-accent);
+}
+
+.theme-primary-button {
+  background: var(--theme-gradient-primary);
+  box-shadow: var(--theme-shadow-button);
+  color: #ffffff;
+}
+
+.theme-soft-button {
+  background: var(--theme-surface);
+  border: 1px solid #e2e8f0;
+  box-shadow: var(--theme-shadow-soft);
+  color: var(--theme-text);
+}
+
+.theme-search-surface {
+  background: var(--theme-surface);
+  box-shadow: var(--theme-shadow-search);
+}
+
+@keyframes station-marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes station-marquee-right {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.station-marquee-row:hover .station-marquee-track {
+  animation-play-state: paused;
+}
+
+.station-marquee-track {
+  width: max-content;
+  animation: station-marquee-left 34s linear infinite;
+  will-change: transform;
+}
+
+.station-marquee-track-reverse {
+  animation-name: station-marquee-right;
+  animation-duration: 38s;
+}
+
+a,
+button,
+[role="button"],
+label[for],
+select,
+summary,
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: var(--theme-cursor-pointer) 8 2, pointer;
+}
+
+input,
+textarea {
+  caret-color: var(--theme-text);
+}
