@@ -5,6 +5,7 @@ import Otp from './apps/user/auth/Otp'
 import UserDashboard from './apps/user/UserDashboard'
 import ChefDashboard from './apps/chef/Dashboard'
 import ChefRegister from './apps/chef/auth/Register'
+import AddMenu from './apps/chef/AddMenu'
 import ProtectedRoute from './components/ProtectedRoute'
 import ChefLogin from './apps/chef/auth/ChefLogin'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -51,6 +52,7 @@ function App() {
       <Route path="/chef/otp" element={<Otp />} />
       <Route path="/chef/dashboard" element={<ChefDashboard />} />
       <Route path="/chef/register" element={<ChefRegister />} />
+      <Route path="/chef/menu" element={<AddMenu />} />
     </Routes>
   )
 }
