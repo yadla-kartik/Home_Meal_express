@@ -113,6 +113,16 @@ body {
   border-color: var(--theme-accent);
 }
 
+.theme-input:-webkit-autofill,
+.theme-input:-webkit-autofill:hover,
+.theme-input:-webkit-autofill:focus,
+.theme-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--theme-text-strong);
+  -webkit-box-shadow: 0 0 0 1000px var(--theme-surface) inset;
+  box-shadow: 0 0 0 1000px var(--theme-surface) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 .theme-primary-button {
   background: var(--theme-gradient-primary);
   box-shadow: var(--theme-shadow-button);

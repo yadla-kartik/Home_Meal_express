@@ -5,8 +5,15 @@ import {TrainFront } from 'lucide-react'
 
 function PnrComponent() {
   return (
+<<<<<<< Updated upstream:frontend/src/components/PnrComponent.jsx
     <>
         <Motion.section
+=======
+    <div className="theme-app-shell min-h-screen overflow-hidden">
+      <Navbar />
+
+      <Motion.section
+>>>>>>> Stashed changes:frontend/src/apps/user/Dashboard.jsx
         className="w-full pt-20"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -46,9 +53,17 @@ function PnrComponent() {
             </button>
           </div>
         </Motion.div>
+<<<<<<< Updated upstream:frontend/src/components/PnrComponent.jsx
       </main>
  
     </>
+=======
+    </main>
+        <FeatureCard />
+        <HowItWorks/>
+        <StationAvailability />
+    </div>
+>>>>>>> Stashed changes:frontend/src/apps/user/Dashboard.jsx
   )
 }
 

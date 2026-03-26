@@ -1,7 +1,18 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
-function Navbar() {
+function Navbar({ isRegistered = false, onRegisterClick }) {
+  const navigate = useNavigate()
+
+  const handleRegisterClick = () => {
+    if (onRegisterClick) {
+      onRegisterClick()
+      return
+    }
+    navigate('/chef/register')
+  }
+
   return (
     <header className="w-full bg-white shadow-sm">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -29,25 +40,31 @@ function Navbar() {
             </svg>
           </button>
 
-          <button className="hidden items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-semibold text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:inline-flex">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#f97316]/10 text-[#f97316]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </span>
-            Profile
-          </button>
+          {isRegistered && (
+            <button className="hidden items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-semibold text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:inline-flex">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-[#f97316]/10 text-[#f97316]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              Profile
+            </button>
+          )}
 
-          <button className="hidden items-center gap-2 rounded-full border border-[#f97316] bg-[#f97316] px-3 py-2 text-xs font-semibold text-white shadow-[0_10px_18px_rgba(249,115,22,0.28)] transition hover:opacity-90 cursor-pointer md:inline-flex">
+          <button
+            type="button"
+            onClick={handleRegisterClick}
+            className="hidden items-center gap-2 rounded-full border border-[#f97316] bg-[#f97316] px-3 py-2 text-xs font-semibold text-white shadow-[0_10px_18px_rgba(249,115,22,0.28)] transition hover:opacity-90 cursor-pointer md:inline-flex"
+          >
             Register
           </button>
 
