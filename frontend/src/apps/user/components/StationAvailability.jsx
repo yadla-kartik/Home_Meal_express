@@ -83,7 +83,7 @@ function StationRow({ stations, reverse = false }) {
 function StationAvailability() {
   return (
     <Motion.section
-      className="relative left-1/2 w-screen -translate-x-1/2 py-4"
+      className=" relative left-1/2 w-screen -translate-x-1/2 pt-20 pb-29"
       variants={sectionVariants}
       initial="hidden"
       whileInView="show"
@@ -96,8 +96,8 @@ function StationAvailability() {
         <h2 className="mt-2 text-2xl font-bold text-[#0f172a] sm:text-[30px]">
           Chefs available across major journey stations
         </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#64748b] sm:text-[15px]">
-          Discover where home chefs are already active on the route. Hover any moving row to pause it and explore stations with a calmer, more interactive feel.
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[#64748b] sm:text-[15px]">
+         Explore major stations where home chefs are actively serving fresh, homemade meals along your journey.
         </p>
       </div>
 

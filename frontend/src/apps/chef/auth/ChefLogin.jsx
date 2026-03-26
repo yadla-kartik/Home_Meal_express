@@ -3,9 +3,12 @@ import google from '../../../assets/google.png'
 import logo from '../../../assets/logo.png'
 import { cookieCheck, userLogin } from '../../../../services/loginService'
 import { useNavigate } from 'react-router-dom'
+import LoadingSpinner from '../../../components/LoadingSpinner'
 
 function ChefLogin() {
   const navigate = useNavigate()
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -15,9 +18,13 @@ function ChefLogin() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const res = await cookieCheck()
-      if (res?.user) {
-        navigate('/dashboard')
+      try {
+        const res = await cookieCheck()
+        if (res?.user) {
+          navigate('/dashboard')
+        }
+      } finally {
+        setIsCheckingAuth(false)
       }
     }
 
@@ -36,17 +43,32 @@ function ChefLogin() {
 
   const handleContinue = async (event) => {
     event.preventDefault()
+    if (isSubmitting) return
 
-    const res = await userLogin(form)
-    if (res?.message === 'Login Successful') {
-      navigate('/dashboard')
-    } else {
+    setIsSubmitting(true)
+
+    try {
+      const res = await userLogin(form)
+      if (res?.message === 'Login Successful') {
+        navigate('/dashboard')
+        return
+      }
+
       alert('Invalid Login')
+      setIsSubmitting(false)
+    } catch {
+      setIsSubmitting(false)
+      alert('Something went wrong')
     }
+  }
+
+  if (isCheckingAuth) {
+    return <LoadingSpinner label="Checking account..." />
   }
 
   return (
     <div className="theme-page-shell min-h-screen px-4 py-7 flex items-center justify-center">
+      {isSubmitting && <LoadingSpinner label="Signing you in..." />}
       <form
         className="theme-card w-full max-w-105 rounded-[18px] px-6 pb-6 pt-7 flex flex-col gap-5"
         onSubmit={handleContinue}
@@ -120,6 +142,7 @@ function ChefLogin() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
+            disabled={isSubmitting}
             className="theme-soft-button flex justify-center items-center w-full rounded-full p-3 text-[15px] font-semibold transition active:scale-[0.98] cursor-pointer"
           >
             <img src={google} alt="Google logo" className="h-5 w-5" />
@@ -128,6 +151,7 @@ function ChefLogin() {
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="theme-primary-button h-11.5 w-full rounded-xl cursor-pointer text-[15px] font-semibold transition active:scale-[0.98]"
           >
             Continue

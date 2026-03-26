@@ -103,7 +103,7 @@ const itemVariants = {
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: 'easeOut' },
+    transition: { duration: 0.75, ease: 'easeOut' },
   },
 }
 

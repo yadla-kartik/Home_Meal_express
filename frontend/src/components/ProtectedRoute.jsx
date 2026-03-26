@@ -23,7 +23,7 @@ function ProtectedRoute({ children }) {
   }, [])
 
   if (status === 'loading') {
-    return <LoadingSpinner label="Checking session" />
+    return <LoadingSpinner label="Loading..." />
   }
 
   if (status === 'unauth') {
