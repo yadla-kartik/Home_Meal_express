@@ -1,22 +1,38 @@
 import React from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Dashboard from './apps/user/Dashboard'
 import Login from './apps/user/auth/Login'
-import Otp from './apps/user/Otp'
+import Otp from './apps/user/auth/Otp'
+import UserDashboard from './apps/user/UserDashboard'
 import ChefDashboard from './apps/chef/Dashboard'
 import ChefRegister from './apps/chef/auth/Register'
 import ProtectedRoute from './components/ProtectedRoute'
 import ChefLogin from './apps/chef/auth/ChefLogin'
+import LoadingSpinner from './components/LoadingSpinner'
+import MainPage from './apps/MainPage'
 
 function App() {
+  const [isBooting, setIsBooting] = React.useState(true)
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsBooting(false)
+    }, 450)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [])
+
+  if (isBooting) {
+    return <LoadingSpinner label="Loading..." />
+  }
+
   return (
     <Routes>
       <Route 
         path='/' 
         element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
+            <MainPage />
         }
       />
       <Route path="/login" element={<Login />} />
@@ -25,7 +41,7 @@ function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <UserDashboard/>
           </ProtectedRoute>
         }
       />
