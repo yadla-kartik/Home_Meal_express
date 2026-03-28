@@ -5,11 +5,12 @@ export const userLogin = async (data) => {
     const res = await api.post('/login', data)
     return res.data
   } catch (err) {
-    console.log('Error occured in loginService', err.message)
+    console.log('Error occured in userAuthService', err.message)
+    return err.response?.data ?? null
   }
 }
 
-export const cookieCheck = async () => {
+export const userCookieCheck = async () => {
   try {
     const res = await api.get('/login/me')
     return res.data

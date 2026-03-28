@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import logo from '../../assets/logo.png'
-import { cookieCheck } from '../../../services/loginService'
+import { userCookieCheck } from '../../../services/userAuthService'
 
 function Navbar() {
   const [scrollProgress, setScrollProgress] = React.useState(0)
@@ -28,9 +28,9 @@ function Navbar() {
     let isMounted = true
 
     const checkAuth = async () => {
-    const res = await cookieCheck()
-       if (res?.user) {
-        setUserName(res.user);
+      const res = await userCookieCheck()
+      if (res?.user) {
+        setUserName(res.user)
       }
       if (!isMounted) return
       setAuthStatus(res?.user ? 'authed' : 'guest')

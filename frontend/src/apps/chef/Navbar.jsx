@@ -4,6 +4,21 @@ import logo from '../../assets/logo.png'
 
 function Navbar({ isRegistered = false, onRegisterClick }) {
   const navigate = useNavigate()
+  const [scrollProgress, setScrollProgress] = React.useState(0)
+
+  React.useEffect(() => {
+    function handleScroll() {
+      const progress = Math.min(window.scrollY / 72, 1)
+      setScrollProgress(progress)
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   const handleRegisterClick = () => {
     if (onRegisterClick) {
@@ -13,19 +28,38 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
     navigate('/chef/register')
   }
 
+  const headerStyle = {
+    backgroundImage: `linear-gradient(180deg, rgba(245,247,250,${0.1 + scrollProgress * 0.56}), rgba(245,247,250,${0.04 + scrollProgress * 0.34}))`,
+    borderBottomColor: `rgba(255,255,255,${0.04 + scrollProgress * 0.16})`,
+    boxShadow: `0 10px 30px rgba(15,23,42,${0.02 + scrollProgress * 0.06})`,
+    backdropFilter: `blur(${2 + scrollProgress * 18}px) saturate(${110 + scrollProgress * 35}%)`,
+    WebkitBackdropFilter: `blur(${2 + scrollProgress * 18}px) saturate(${110 + scrollProgress * 35}%)`,
+  }
+
+  const overlayStyle = {
+    opacity: 0.08 + scrollProgress * 0.34,
+  }
+
   return (
-    <header className="w-full bg-white shadow-sm">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+    <header
+      className="fixed inset-x-0 top-0 z-50 w-full border-b transition-[background-image,border-color,box-shadow,backdrop-filter] duration-150"
+      style={headerStyle}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04),rgba(255,255,255,0.14))] transition-opacity duration-150"
+        style={overlayStyle}
+      />
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Home Meal Express" className="h-28 w-auto" />
-          <div className="hidden items-center gap-2 rounded-full border border-[#ffe6d6] bg-[#fff6ef] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#f97316] sm:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" />
+          <div className="hidden items-center gap-2 rounded-full border border-[color:var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)] sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--theme-accent)]" />
             Chef Partner.
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="hidden h-9 w-9 items-center justify-center rounded-full border border-[#e2e8f0] text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:inline-flex">
+          <button className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -41,8 +75,8 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
           </button>
 
           {isRegistered && (
-            <button className="hidden items-center gap-2 rounded-full border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-semibold text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:inline-flex">
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-[#f97316]/10 text-[#f97316]">
+            <button className="hidden items-center gap-2 rounded-full border border-[color:var(--theme-surface-border)] bg-white/86 px-3 py-2 text-xs font-semibold text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex">
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -63,12 +97,12 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
           <button
             type="button"
             onClick={handleRegisterClick}
-            className="hidden items-center gap-2 rounded-full border border-[#f97316] bg-[#f97316] px-3 py-2 text-xs font-semibold text-white shadow-[0_10px_18px_rgba(249,115,22,0.28)] transition hover:opacity-90 cursor-pointer md:inline-flex"
+            className="hidden items-center gap-2 rounded-full border border-[var(--theme-accent)] bg-[var(--theme-accent)] px-3 py-2 text-xs font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-90 md:inline-flex"
           >
             Register
           </button>
 
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e2e8f0] text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:hidden">
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -82,7 +116,7 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
           </button>
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#e2e8f0] text-[#0f172a] transition hover:border-[#f97316] hover:text-[#f97316] cursor-pointer md:hidden">
+          <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden">
             <svg
               viewBox="0 0 24 24"
               fill="none"

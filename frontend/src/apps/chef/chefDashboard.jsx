@@ -17,7 +17,7 @@ const Dashboard = () => {
         onRegisterClick={() => navigate('/chef/register')}
       />
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-6 pt-22 sm:px-6 lg:px-8">
         <ChefRegisterBanner />
         <ChefVerificationBanner />
         <ChefVerifiedBanner />

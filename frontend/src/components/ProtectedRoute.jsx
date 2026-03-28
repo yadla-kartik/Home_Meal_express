@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { cookieCheck } from '../../services/loginService'
+import { userCookieCheck } from '../../services/userAuthService'
 import LoadingSpinner from './LoadingSpinner'
 
 function ProtectedRoute({ children }) {
@@ -10,7 +10,7 @@ function ProtectedRoute({ children }) {
     let isMounted = true
 
     const checkAuth = async () => {
-      const res = await cookieCheck()
+      const res = await userCookieCheck()
       if (!isMounted) return
       setStatus(res?.user ? 'authed' : 'unauth')
     }

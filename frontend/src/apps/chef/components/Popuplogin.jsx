@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CircleCheckBig, Clock3, ShieldAlert, Sparkles, X } from 'lucide-react'
+import { ChefHat, CircleCheckBig, Clock3, ShieldAlert, X } from 'lucide-react'
 
 function Popuplogin({
   isOpen,
@@ -11,11 +11,10 @@ function Popuplogin({
   successRedirectTo = '/chef/dashboard',
 }) {
   const navigate = useNavigate()
+  const isSuccessMode = mode === 'success'
+  const safeName = (name || '').trim() || 'User'
 
   if (!isOpen) return null
-
-  const safeName = (name || '').trim() || 'User'
-  const isSuccessMode = mode === 'success'
 
   const handleRegister = () => {
     if (onRegister) {
@@ -51,39 +50,41 @@ function Popuplogin({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4 backdrop-blur-md">
-      <div className="relative w-full max-w-sm rounded-3xl bg-white px-6 pb-6 pt-12 shadow-[0_24px_48px_rgba(15,23,42,0.25)] ring-1 ring-black/5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.16)] px-4 backdrop-blur-[3px]">
+      <div className="relative w-full max-w-sm overflow-visible rounded-[26px] border border-[color:var(--theme-surface-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,247,239,0.96))] px-6 pb-6 pt-12 shadow-[0_26px_58px_rgba(15,23,42,0.18)]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(249,115,22,0.08),transparent)]" />
+
         {!isSuccessMode && (
           <button
             type="button"
             onClick={handleClose}
             aria-label="Close popup"
-            className="absolute right-4 top-4 rounded-full p-2 text-slate-500 transition hover:bg-slate-100"
+            className="absolute right-4 top-4 rounded-full p-2 text-[var(--theme-muted)] transition hover:bg-white/80"
           >
             <X size={18} />
           </button>
         )}
 
-        <div className="absolute -top-8 left-1/2 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full bg-[#fff3e7] text-4xl shadow-[0_12px_20px_rgba(249,115,22,0.25)]">
+        <div className="absolute -top-9 left-1/2 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full border border-white/80 bg-[linear-gradient(180deg,#fff6ee,#ffe7d1)] shadow-[0_12px_24px_rgba(249,115,22,0.2)]">
           {isSuccessMode ? (
             <CircleCheckBig size={34} className="text-[#16a34a]" />
           ) : (
-            <Sparkles size={34} className="text-[#f97316]" />
+            <ChefHat size={34} className="text-[var(--theme-accent)]" />
           )}
         </div>
 
-        <h2 className="mt-4 text-center text-xl font-bold text-[#0f172a]">
+        <h2 className="mt-4 text-center text-xl font-bold text-[var(--theme-text)]">
           {isSuccessMode ? `Successfully registered, ${safeName}!` : `Welcome, ${safeName}!`}
         </h2>
 
-        <p className="mt-2 text-center text-sm text-[#475569]">
+        <p className="mt-2 text-center text-sm leading-6 text-[var(--theme-muted)]">
           {isSuccessMode
             ? 'Your kitchen profile has been submitted successfully. We will review it shortly.'
-            : 'You logged in successfully. Register now to continue.'}
+            : 'You logged in successfully. Complete your chef registration to continue with the next steps.'}
         </p>
 
         {isSuccessMode && (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-[linear-gradient(135deg,#fff7ed,#fffbeb)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(245,158,11,0.12)]">
+          <div className="mt-4 rounded-[20px] border border-amber-200 bg-[linear-gradient(135deg,#fff7ed,#fffbeb)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(245,158,11,0.12)]">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                 <Clock3 size={18} />
@@ -101,13 +102,15 @@ function Popuplogin({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={isSuccessMode ? handleSuccessContinue : handleRegister}
-          className="mt-5 w-full rounded-xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
-        >
-          {isSuccessMode ? 'Continue' : 'Register Now'}
-        </button>
+        <div className="mt-5 grid gap-3">
+          <button
+            type="button"
+            onClick={isSuccessMode ? handleSuccessContinue : handleRegister}
+            className="w-full rounded-xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
+          >
+            {isSuccessMode ? 'Continue' : 'Register Now'}
+          </button>
+        </div>
       </div>
     </div>
   )

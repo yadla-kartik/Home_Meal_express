@@ -3,7 +3,7 @@
   --theme-app-bg: #f8fafc;
   --theme-page-bg: radial-gradient(circle at top, #fff3d9, #f3f7ff 55%, #eef2f5);
   --theme-surface: #ffffff;
-  --theme-surface-soft: rgba(255, 255, 255, 0.88);
+  --theme-surface-soft: #ffffffe0;
   --theme-surface-border: rgba(15, 23, 42, 0.08);
   --theme-border: #d1d5db;
   --theme-text: #0f172a;

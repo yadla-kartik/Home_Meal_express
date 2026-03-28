@@ -8,6 +8,7 @@ dotenv.config()
 
 // routes import
 const userRoute = require('./routes/userRoutes')
+const chefAuthRoutes = require('./routes/chefAuthRoutes')
 
 // Instance of Express
 const app = express()
@@ -19,11 +20,14 @@ app.use(
     credentials: true,
   }),
 )
-app.use(express.json())
+app.use(express.json({ limit: '15mb' }))
 app.use(cookieParser())
 
 // User
 app.use('/api/login', userRoute)
+
+// Chef
+app.use('/api/chef', chefAuthRoutes)
 
 // Connection of DB and Port Listening
 connectDB()

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Popuplogin from '../components/Popuplogin'
+import { chefCookieCheck, submitChefRegistration, updateChefProfile } from '../../../../services/chefAuthService'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -36,11 +37,25 @@ const ifscPattern = /^[A-Z]{4}0\d{6}$/
 const upiPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z]+$/
 const accountNumberPattern = /^\d+$/
 
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    if (!file) {
+      resolve('')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error(`Unable to read file: ${file.name}`))
+    reader.readAsDataURL(file)
+  })
+
 function Register() {
   const [page, setPage] = useState(1)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
   const [selectedDays, setSelectedDays] = useState([])
   const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [form, setForm] = useState({
     chefName: '',
@@ -66,6 +81,28 @@ function Register() {
     bankName: '',
     ifscCode: '',
   })
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadChefProfile = async () => {
+      const res = await chefCookieCheck()
+      if (!isMounted || !res?.chefUser) return
+
+      setForm((prev) => ({
+        ...prev,
+        chefName: prev.chefName || res.chefUser.name || '',
+        phone: prev.phone || res.chefUser.phone || '',
+        email: prev.email || res.chefUser.email || '',
+      }))
+    }
+
+    loadChefProfile()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const setFieldError = (field, message) => {
     setErrors((prev) => ({ ...prev, [field]: message }))
@@ -232,10 +269,63 @@ function Register() {
     if (validatePage(page)) setPage(nextPage)
   }
 
-  const handleSubmit = () => {
-    if (!validatePage(3)) return
-    console.log('Submitted', { ...form, availableDays: selectedDays })
-    setShowSuccessPopup(true)
+  const handleSubmit = async () => {
+    if (!validatePage(3) || isSubmitting) return
+
+    try {
+      setIsSubmitting(true)
+
+      const profileRes = await updateChefProfile({
+        name: form.chefName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        isRegistered: false,
+      })
+
+      if (!profileRes?.message || profileRes.message !== 'Profile Updated') {
+        alert(profileRes?.message || 'Unable to save chef profile')
+        return
+      }
+
+      const [idProofData, chefPhotoData] = await Promise.all([
+        fileToDataUrl(form.idProof),
+        fileToDataUrl(form.chefPhoto),
+      ])
+
+      const registerRes = await submitChefRegistration({
+        kitchenName: form.kitchenName.trim(),
+        cuisine: form.cuisine.trim(),
+        speciality: form.speciality.trim(),
+        experience: form.experience.trim(),
+        maxOrders: form.maxOrders.trim(),
+        addressLine: form.addressLine.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        zip: form.zip.trim(),
+        nearestStation: form.nearestStation.trim(),
+        prepTime: form.prepTime.trim(),
+        openTime: form.openTime,
+        closeTime: form.closeTime,
+        availableDays: selectedDays,
+        idProof: idProofData,
+        chefPhoto: chefPhotoData,
+        upiOrAccount: form.upiOrAccount.trim(),
+        accountHolder: form.accountHolder.trim(),
+        bankName: form.bankName.trim(),
+        ifscCode: form.ifscCode.trim(),
+      })
+
+      if (!registerRes?.message || registerRes.message !== 'Chef registered successfully') {
+        alert(registerRes?.message || 'Unable to submit chef registration')
+        return
+      }
+
+      setShowSuccessPopup(true)
+    } catch (err) {
+      alert(err.message || 'Unable to submit chef registration')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const inputCls = 'h-11 rounded-xl border border-[#d1d5db] px-3 text-sm text-[#111827] outline-none transition focus:border-[#f97316] focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]'
@@ -362,7 +452,7 @@ function Register() {
 
             <div className="mt-2 flex gap-3">
               <button type="button" onClick={() => setPage(2)} className="flex-1 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-semibold text-[#374151]">← Back</button>
-              <button type="button" onClick={handleSubmit} className="flex-[2] rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(249,115,22,0.28)]">Submit Registration</button>
+              <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="flex-[2] rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(249,115,22,0.28)] disabled:cursor-not-allowed disabled:opacity-70">{isSubmitting ? 'Submitting...' : 'Submit Registration'}</button>
             </div>
           </div>
         )}
