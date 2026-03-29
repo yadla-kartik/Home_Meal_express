@@ -336,7 +336,7 @@ function Register() {
   const steps = ['Kitchen Profile', 'Location', 'Availability']
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fff3d9,#f3f7ff_55%,#eef2f5)] px-4 py-10">
+    <div className="min-h-screen bg-[var(--theme-app-bg)] px-4 py-8">
       <div className="mx-auto w-full max-w-3xl rounded-3xl bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] ring-1 ring-black/5 sm:p-8">
         <div className="mb-8 flex flex-col gap-2 text-center">
           <p className="text-sm font-semibold text-[#f97316]">Chef Registration</p>

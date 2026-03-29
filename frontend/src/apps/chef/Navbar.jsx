@@ -58,7 +58,7 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-5 text-sm font-medium text-[#0f172a] md:flex">
           <button className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex">
             <svg
               viewBox="0 0 24 24"

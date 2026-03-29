@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [isRegistered, setIsRegistered] = useState(Boolean(location.state?.chefRegistered))
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fff1df,#f8fafc_58%,#eef2f7)]">
+    <div className="min-h-screen bg-[var(--theme-app-bg)]]">
       <Navbar
         isRegistered={isRegistered}
         onRegisterClick={() => navigate('/chef/register')}

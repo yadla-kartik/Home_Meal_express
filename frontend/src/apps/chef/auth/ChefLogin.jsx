@@ -192,7 +192,7 @@ function ChefLogin() {
                 Phone Number
               </label>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="theme-input flex h-11 items-center gap-2 rounded-xl px-3 sm:min-w-[92px]">
+                <div className="theme-input flex h-11 w-auto items-center gap-2 rounded-xl px-3 sm:min-w-[92px]">
                   <span className="rounded-full bg-[var(--theme-accent-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--theme-accent)]">
                     IN
                   </span>
