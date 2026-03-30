@@ -89,65 +89,66 @@ const signUp = async(req, res) => {
     }
 }
 
-const updateProfile = async (req, res) => {
-    try {
-        const chefId = req.user?.id
-        const { name, email, phone, isRegistered } = req.body
+// const updateProfile = async (req, res) => {
+//     try {
+//         const chefId = req.user?.id
+//         const { name, email, phone, isRegistered } = req.body
 
-        if (!chefId) {
-            return res.status(401).json({ message: 'Unauthorized' })
-        }
+//         if (!chefId) {
+//             return res.status(401).json({ message: 'Unauthorized' })
+//         }
 
-        const duplicateChef = await chefAuth.findOne({
-            email,
-            _id: { $ne: chefId },
-        })
+//         const duplicateChef = await chefAuth.findOne({
+//             email,
+//             _id: { $ne: chefId },
+//         })
 
-        if (duplicateChef) {
-            return res.status(409).json({ message: 'Email already in use' })
-        }
+//         if (duplicateChef) {
+//             return res.status(409).json({ message: 'Email already in use' })
+//         }
 
-        const updatedChef = await chefAuth.findByIdAndUpdate(
-            chefId,
-            {
-                name,
-                email,
-                phone,
-                isRegistered: Boolean(isRegistered),
-            },
-            {
-                new: true,
-                runValidators: true,
-            },
-        )
+//         const updatedChef = await chefAuth.findByIdAndUpdate(
+//             chefId,
+//             {
+//                 name,
+//                 email,
+//                 phone,
+//                 isRegistered: Boolean(isRegistered),
+//             },
+//             {
+//                 new: true,
+//                 runValidators: true,
+//             },
+//         )
 
-        if (!updatedChef) {
-            return res.status(404).json({ message: 'Chef not found' })
-        }
+//         if (!updatedChef) {
+//             return res.status(404).json({ message: 'Chef not found' })
+//         }
 
-        const token = generateToken({
-            id: updatedChef._id,
-            name: updatedChef.name,
-            email: updatedChef.email,
-            phone: updatedChef.phone,
-            isRegistered: updatedChef.isRegistered,
-        })
+//         const token = generateToken({
+//             id: updatedChef._id,
+//             name: updatedChef.name,
+//             email: updatedChef.email,
+//             phone: updatedChef.phone,
+//             isRegistered: updatedChef.isRegistered,
+//         })
 
-        res.cookie('chefToken', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            maxAge: 1 * 24 * 60 * 60 * 1000,
-        })
+//         res.cookie('chefToken', token, {
+//             httpOnly: true,
+//             sameSite: 'lax',
+//             maxAge: 1 * 24 * 60 * 60 * 1000,
+//         })
 
-        return res.status(200).json({
-            message: 'Profile Updated',
-            chefUser: updatedChef,
-            token,
-        })
-    } catch (err) {
-        console.error('Error occurred while updateProfile in chefAuth controller file:', err.message)
-        return res.status(500).json({ message: 'Server error' })
+//         return res.status(200).json({
+//             message: 'Profile Updated',
+//             chefUser: updatedChef,
+//             token,
+//         })
+//     } catch (err) {
+//         console.error('Error occurred while updateProfile in chefAuth controller file:', err.message)
+//         return res.status(500).json({ message: 'Server error' })
+//     }
+// }
+
+module.exports = {signIn, signUp, // updateProfile --- IGNORE ---
     }
-}
-
-module.exports = {signIn, signUp, updateProfile}

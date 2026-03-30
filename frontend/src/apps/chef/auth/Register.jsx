@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Popuplogin from '../components/Popuplogin'
-import { chefCookieCheck, submitChefRegistration, updateChefProfile } from '../../../../services/chefAuthService'
+import { chefCookieCheck, submitChefRegistration } from '../../../../services/chefAuthService'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -18,12 +18,12 @@ const FILE_LIMITS = {
 const FILE_RULES = {
   idProof: {
     required: true,
-    types: ['application/pdf', 'image/jpeg', 'image/png'],
+    types: ['image/jpeg', 'image/png', 'image/jpg'],
     label: 'ID Proof',
   },
   chefPhoto: {
     required: true,
-    types: ['image/jpeg', 'image/png'],
+    types: ['image/jpeg', 'image/png', 'image/jpg'],
     label: 'Chef Photo',
   },
 }
@@ -36,19 +36,6 @@ const textPattern = /^[A-Za-z ]+$/
 const ifscPattern = /^[A-Z]{4}0\d{6}$/
 const upiPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z]+$/
 const accountNumberPattern = /^\d+$/
-
-const fileToDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    if (!file) {
-      resolve('')
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = () => reject(new Error(`Unable to read file: ${file.name}`))
-    reader.readAsDataURL(file)
-  })
 
 function Register() {
   const [page, setPage] = useState(1)
@@ -119,7 +106,7 @@ function Register() {
   const validateFile = (key, file) => {
     const rule = FILE_RULES[key]
     if (!file) return rule.required ? `${rule.label} is required.` : ''
-    if (!rule.types.includes(file.type)) return `Upload a valid ${rule.label} file.`
+    if (!rule.types.includes(file.type)) return `${rule.label}: upload in PNG, JPG or JPEG format only.`
     if (file.size > FILE_LIMITS[key]) return `${rule.label} must be under ${key === 'chefPhoto' ? '2MB' : '5MB'}.`
     return ''
   }
@@ -275,45 +262,32 @@ function Register() {
     try {
       setIsSubmitting(true)
 
-      const profileRes = await updateChefProfile({
-        name: form.chefName.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        isRegistered: false,
-      })
+      const payload = new FormData()
+      payload.append('name', form.chefName.trim())
+      payload.append('email', form.email.trim())
+      payload.append('phone', form.phone.trim())
+      payload.append('kitchenName', form.kitchenName.trim())
+      payload.append('cuisine', form.cuisine.trim())
+      payload.append('speciality', form.speciality.trim())
+      payload.append('experience', form.experience.trim())
+      payload.append('maxOrders', form.maxOrders.trim())
+      payload.append('addressLine', form.addressLine.trim())
+      payload.append('city', form.city.trim())
+      payload.append('state', form.state.trim())
+      payload.append('zip', form.zip.trim())
+      payload.append('nearestStation', form.nearestStation.trim())
+      payload.append('prepTime', form.prepTime.trim())
+      payload.append('openTime', form.openTime)
+      payload.append('closeTime', form.closeTime)
+      payload.append('availableDays', JSON.stringify(selectedDays))
+      payload.append('upiOrAccount', form.upiOrAccount.trim())
+      payload.append('accountHolder', form.accountHolder.trim())
+      payload.append('bankName', form.bankName.trim())
+      payload.append('ifscCode', form.ifscCode.trim())
+      payload.append('idProof', form.idProof)
+      payload.append('chefPhoto', form.chefPhoto)
 
-      if (!profileRes?.message || profileRes.message !== 'Profile Updated') {
-        alert(profileRes?.message || 'Unable to save chef profile')
-        return
-      }
-
-      const [idProofData, chefPhotoData] = await Promise.all([
-        fileToDataUrl(form.idProof),
-        fileToDataUrl(form.chefPhoto),
-      ])
-
-      const registerRes = await submitChefRegistration({
-        kitchenName: form.kitchenName.trim(),
-        cuisine: form.cuisine.trim(),
-        speciality: form.speciality.trim(),
-        experience: form.experience.trim(),
-        maxOrders: form.maxOrders.trim(),
-        addressLine: form.addressLine.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-        zip: form.zip.trim(),
-        nearestStation: form.nearestStation.trim(),
-        prepTime: form.prepTime.trim(),
-        openTime: form.openTime,
-        closeTime: form.closeTime,
-        availableDays: selectedDays,
-        idProof: idProofData,
-        chefPhoto: chefPhotoData,
-        upiOrAccount: form.upiOrAccount.trim(),
-        accountHolder: form.accountHolder.trim(),
-        bankName: form.bankName.trim(),
-        ifscCode: form.ifscCode.trim(),
-      })
+      const registerRes = await submitChefRegistration(payload)
 
       if (!registerRes?.message || registerRes.message !== 'Chef registered successfully') {
         alert(registerRes?.message || 'Unable to submit chef registration')
@@ -427,15 +401,15 @@ function Register() {
 
             <div className="flex flex-col gap-1">
               <span className="text-sm font-semibold text-[#1f2937]">ID Proof</span>
-              <input className={fileInputCls} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={update('idProof')} />
-              <span className="text-[11px] text-[#9ca3af]">Aadhaar, Voter ID, PAN. Max 5MB.</span>
+              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('idProof')} />
+              <span className="text-[11px] text-[#9ca3af]">Upload PNG, JPG or JPEG only. Max 5MB.</span>
               {errors.idProof && <span className={errorCls}>{errors.idProof}</span>}
             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-sm font-semibold text-[#1f2937]">Chef Photo</span>
               <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('chefPhoto')} />
-              <span className="text-[11px] text-[#9ca3af]">JPG or PNG only. Max 2MB.</span>
+              <span className="text-[11px] text-[#9ca3af]">Upload PNG, JPG or JPEG only. Max 2MB.</span>
               {errors.chefPhoto && <span className={errorCls}>{errors.chefPhoto}</span>}
             </div>
 

@@ -3,16 +3,24 @@ import { Navigate } from 'react-router-dom'
 import { userCookieCheck } from '../../services/userAuthService'
 import LoadingSpinner from './LoadingSpinner'
 
-function ProtectedRoute({ children }) {
+const defaultIsAuthorized = (res) => Boolean(res?.user)
+
+function ProtectedRoute({
+  children,
+  authCheck = userCookieCheck,
+  isAuthorized = defaultIsAuthorized,
+  redirectTo = '/login',
+  loadingLabel = 'Loading...',
+}) {
   const [status, setStatus] = useState('loading')
 
   useEffect(() => {
     let isMounted = true
 
     const checkAuth = async () => {
-      const res = await userCookieCheck()
+      const res = await authCheck()
       if (!isMounted) return
-      setStatus(res?.user ? 'authed' : 'unauth')
+      setStatus(isAuthorized(res) ? 'authed' : 'unauth')
     }
 
     checkAuth()
@@ -20,14 +28,14 @@ function ProtectedRoute({ children }) {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [authCheck, isAuthorized])
 
   if (status === 'loading') {
-    return <LoadingSpinner label="Loading..." />
+    return <LoadingSpinner label={loadingLabel} />
   }
 
   if (status === 'unauth') {
-    return <Navigate to="/login" replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   return children

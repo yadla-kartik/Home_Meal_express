@@ -1,9 +1,9 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { ShieldCheck } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
-function Navbar({ isRegistered = false, onRegisterClick }) {
-  const navigate = useNavigate()
+function Navbar() {
   const [scrollProgress, setScrollProgress] = React.useState(0)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false)
   const profileMenuRef = React.useRef(null)
@@ -44,14 +44,6 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
     }
   }, [])
 
-  const handleRegisterClick = () => {
-    if (onRegisterClick) {
-      onRegisterClick()
-      return
-    }
-    navigate('/chef/register')
-  }
-
   const headerStyle = {
     backgroundImage: `linear-gradient(180deg, rgba(245,247,250,${0.1 + scrollProgress * 0.56}), rgba(245,247,250,${0.04 + scrollProgress * 0.34}))`,
     borderBottomColor: `rgba(255,255,255,${0.04 + scrollProgress * 0.16})`,
@@ -65,9 +57,9 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
   }
 
   const profileMenuItems = [
-    { label: 'Orders', hint: 'Track active meal requests and history' },
-    { label: 'Menu', hint: 'Manage dishes, pricing and availability' },
-    { label: 'Settings', hint: 'Keep kitchen preferences and profile updated' },
+    { label: 'Chef Requests', hint: 'Review onboarding and verification queue' },
+    { label: 'Delivery Ops', hint: 'Track rider activity and assignment status' },
+    { label: 'Platform Settings', hint: 'Manage station, pricing and approvals' },
   ]
 
   return (
@@ -83,12 +75,27 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <img src={logo} alt="Home Meal Express" className="h-18 w-auto shrink-0 sm:h-24 lg:h-28" />
           <div className="hidden items-center gap-2 rounded-full border border-[color:var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)] sm:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--theme-accent)]" />
-            Chef Partner.
+            <ShieldCheck size={13} />
+            Admin Panel.
           </div>
         </div>
 
-        <div className="relative flex shrink-0 items-center gap-2 text-sm font-medium text-[#0f172a] sm:gap-3 md:gap-5" ref={profileMenuRef}>
+        <nav className="hidden items-center gap-5 text-sm font-medium text-[var(--theme-text)] md:flex">
+          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
+            Overview
+            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+          </button>
+          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
+            Requests
+            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+          </button>
+          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
+            Reports
+            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+          </button>
+        </nav>
+
+        <div className="relative flex shrink-0 items-center gap-2" ref={profileMenuRef}>
           <button className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex">
             <svg
               viewBox="0 0 24 24"
@@ -103,38 +110,16 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
           </button>
-
-          {isRegistered ? (
-            <button
-              type="button"
-              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="hidden items-center gap-2 rounded-full border border-[color:var(--theme-surface-border)] bg-white/86 px-3 py-2 text-xs font-semibold text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex"
-            >
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </span>
-              Profile
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRegisterClick}
-              className="hidden items-center gap-2 rounded-full border border-[var(--theme-accent)] bg-[var(--theme-accent)] px-3 py-2 text-xs font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-90 md:inline-flex"
-            >
-              Register
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+            className="hidden cursor-pointer items-center gap-2 rounded-full border border-[color:var(--theme-surface-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--theme-text)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex"
+          >
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
+              <ShieldCheck size={14} />
+            </span>
+            Profile
+          </button>
 
           <button className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden">
             <svg
@@ -146,63 +131,30 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
               strokeLinejoin="round"
               className="h-5 w-5"
             >
-              <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-              <path d="M13.73 21a2 2 0 01-3.46 0" />
+              <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
-          {isRegistered ? (
-            <button
-              type="button"
-              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleRegisterClick}
-              className="inline-flex items-center justify-center rounded-full border border-[var(--theme-accent)] bg-[var(--theme-accent)] px-2.5 py-2 text-[10px] font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-90 sm:px-3 sm:text-[11px] md:hidden"
-            >
-              Register
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden"
+          >
+            <ShieldCheck size={18} />
+          </button>
 
-          {isRegistered && isProfileMenuOpen && (
+          {isProfileMenuOpen && (
             <div className="absolute right-0 top-[calc(100%+14px)] w-[290px] rounded-[25px] border border-[color:var(--theme-surface-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,247,239,0.96))] p-3 shadow-[0_26px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl">
               <div className="rounded-[22px] border border-[#fde7d2] bg-[#fff8f2] p-4">
                 <div className="flex items-center gap-3">
                   <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#f97316]/10 text-[#f97316] shadow-[0_10px_20px_rgba(249,115,22,0.15)]">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
+                    <ShieldCheck size={18} />
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-[var(--theme-text)]">
-                      Chef Profile
+                      Control Room Admin
                     </p>
                     <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                      Manage orders, menu and kitchen settings
+                      Manage requests, stations and platform approvals
                     </p>
                   </div>
                 </div>
@@ -227,6 +179,13 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
                   </button>
                 ))}
               </div>
+
+              <Link
+                to="/admin/login"
+                className="mt-3 block rounded-[18px] border border-[var(--theme-chip-border)] bg-white/80 px-4 py-3 text-center text-sm font-semibold text-[var(--theme-text)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
+              >
+                Switch Account
+              </Link>
             </div>
           )}
         </div>

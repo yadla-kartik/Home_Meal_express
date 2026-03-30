@@ -1,17 +1,43 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
 import ChefRegisterBanner, { ChefVerificationBanner, ChefVerifiedBanner } from './components/Banner'
 import Popuplogin from './components/Popuplogin'
+import { chefCookieCheck } from '../../../services/chefAuthService'
 
-const Dashboard = () => {
+const chefDashboard = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const [showPopup, setShowPopup] = useState(!location.state?.hideChefPopup)
+  const [showPopup, setShowPopup] = useState(false)
   const [isRegistered, setIsRegistered] = useState(Boolean(location.state?.chefRegistered))
 
+  useEffect(() => {
+    let isMounted = true
+
+    const syncChefState = async () => {
+      const res = await chefCookieCheck()
+      if (!isMounted) return
+
+      const registered = Boolean(res?.chefUser?.isRegistered || location.state?.chefRegistered)
+      setIsRegistered(registered)
+
+      if (location.state?.hideChefPopup || registered) {
+        setShowPopup(false)
+        return
+      }
+
+      setShowPopup(true)
+    }
+
+    syncChefState()
+
+    return () => {
+      isMounted = false
+    }
+  }, [location.state])
+
   return (
-    <div className="min-h-screen bg-[var(--theme-app-bg)]]">
+    <div className="min-h-screen bg-[var(--theme-app-bg)]">
       <Navbar
         isRegistered={isRegistered}
         onRegisterClick={() => navigate('/chef/register')}
@@ -24,7 +50,7 @@ const Dashboard = () => {
       </main>
 
       <Popuplogin
-        isOpen={showPopup}
+        isOpen={showPopup && !isRegistered}
         onClose={() => setShowPopup(false)}
         onRegister={setIsRegistered}
       />
@@ -32,4 +58,4 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default chefDashboard

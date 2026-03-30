@@ -1,4 +1,5 @@
 const express = require('express')
+const path = require('path')
 const connectDB = require('./DBconnection')
 const dotenv = require('dotenv')
 const cors = require('cors')
@@ -9,6 +10,7 @@ dotenv.config()
 // routes import
 const userRoute = require('./routes/userRoutes')
 const chefAuthRoutes = require('./routes/chefAuthRoutes')
+const deliveryRoutes = require('./routes/deliveryRoutes')
 
 // Instance of Express
 const app = express()
@@ -22,12 +24,16 @@ app.use(
 )
 app.use(express.json({ limit: '15mb' }))
 app.use(cookieParser())
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // User
 app.use('/api/login', userRoute)
 
 // Chef
 app.use('/api/chef', chefAuthRoutes)
+
+// Delivery
+app.use('/api/delivery', deliveryRoutes)
 
 // Connection of DB and Port Listening
 connectDB()

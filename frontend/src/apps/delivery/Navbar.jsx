@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
-function Navbar({ isRegistered = false, onRegisterClick }) {
+function Navbar({ isRegistered = false, deliveryName, onRegisterClick }) {
   const navigate = useNavigate()
   const [scrollProgress, setScrollProgress] = React.useState(0)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false)
@@ -44,13 +44,20 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
     }
   }, [])
 
-  const handleRegisterClick = () => {
+  const handleRegister = () => {
     if (onRegisterClick) {
       onRegisterClick()
       return
     }
-    navigate('/chef/register')
+
+    navigate('/delivery/login')
   }
+
+  const profileMenuItems = [
+    { label: 'Assigned Orders', hint: 'Track active pickups and seat drops' },
+    { label: 'Earnings', hint: 'View today summary and weekly payouts' },
+    { label: 'Availability', hint: 'Manage shift timing and route preference' },
+  ]
 
   const headerStyle = {
     backgroundImage: `linear-gradient(180deg, rgba(245,247,250,${0.1 + scrollProgress * 0.56}), rgba(245,247,250,${0.04 + scrollProgress * 0.34}))`,
@@ -64,12 +71,6 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
     opacity: 0.08 + scrollProgress * 0.34,
   }
 
-  const profileMenuItems = [
-    { label: 'Orders', hint: 'Track active meal requests and history' },
-    { label: 'Menu', hint: 'Manage dishes, pricing and availability' },
-    { label: 'Settings', hint: 'Keep kitchen preferences and profile updated' },
-  ]
-
   return (
     <header
       className="fixed inset-x-0 top-0 z-50 w-full border-b transition-[background-image,border-color,box-shadow,backdrop-filter] duration-150"
@@ -79,12 +80,12 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
         className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.18),rgba(255,255,255,0.04),rgba(255,255,255,0.14))] transition-opacity duration-150"
         style={overlayStyle}
       />
-      <div className="relative mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <img src={logo} alt="Home Meal Express" className="h-18 w-auto shrink-0 sm:h-24 lg:h-28" />
           <div className="hidden items-center gap-2 rounded-full border border-[color:var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)] sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--theme-accent)]" />
-            Chef Partner.
+            Delivery Partner.
           </div>
         </div>
 
@@ -129,7 +130,7 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
           ) : (
             <button
               type="button"
-              onClick={handleRegisterClick}
+              onClick={handleRegister}
               className="hidden items-center gap-2 rounded-full border border-[var(--theme-accent)] bg-[var(--theme-accent)] px-3 py-2 text-xs font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-90 md:inline-flex"
             >
               Register
@@ -150,6 +151,7 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
               <path d="M13.73 21a2 2 0 01-3.46 0" />
             </svg>
           </button>
+
           {isRegistered ? (
             <button
               type="button"
@@ -172,7 +174,7 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
           ) : (
             <button
               type="button"
-              onClick={handleRegisterClick}
+              onClick={handleRegister}
               className="inline-flex items-center justify-center rounded-full border border-[var(--theme-accent)] bg-[var(--theme-accent)] px-2.5 py-2 text-[10px] font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-90 sm:px-3 sm:text-[11px] md:hidden"
             >
               Register
@@ -199,10 +201,10 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-[var(--theme-text)]">
-                      Chef Profile
+                      {deliveryName || 'Delivery Partner'}
                     </p>
                     <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                      Manage orders, menu and kitchen settings
+                      Keep deliveries on time and routes in sync
                     </p>
                   </div>
                 </div>
