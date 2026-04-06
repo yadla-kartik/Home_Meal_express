@@ -4,6 +4,8 @@ const chefAuth = require('../models/chefAuth')
 const chefRegister = require('../models/chefRegister')
 const { generateToken } = require('../utils/jwtAuth')
 const { encryptField } = require('../utils/fieldCrypto')
+const { emitToAdmins } = require('../socket')
+const { serializeChefApproval } = require('../utils/chefApprovalPayload')
 
 const cleanupUploadedFiles = (files = {}) => {
     Object.values(files).flat().forEach((file) => {
@@ -148,7 +150,7 @@ const createChefRegister = async (req, res) => {
             message: 'Chef registered successfully',
             chefUser: updatedChef,
             registration,
-            token,
+            token: Cheftoken,
         })
     } catch (err) {
         cleanupUploadedFiles(req.files)
@@ -162,6 +164,60 @@ const createChefRegister = async (req, res) => {
     }
 }
 
+const createChefRegisterAndBroadcast = async (req, res) => {
+    const originalJson = res.json.bind(res)
+
+    res.json = (payload) => {
+        if (res.statusCode === 201 && payload?.registration) {
+            const plainRegistration = typeof payload.registration?.toObject === 'function'
+                ? payload.registration.toObject()
+                : payload.registration
+            const approvalPayload = serializeChefApproval({
+                ...plainRegistration,
+                createdBy: payload.chefUser,
+            })
+            emitToAdmins('chef:approval-created', approvalPayload)
+        }
+
+        return originalJson(payload)
+    }
+
+    return createChefRegister(req, res)
+}
+
+const getChefReviewStatus = async (req, res) => {
+    try {
+        const chefId = req.user?.id
+
+        if (!chefId) {
+            return res.status(401).json({ message: 'Unauthorized' })
+        }
+
+        const registration = await chefRegister.findOne({ createdBy: chefId })
+
+        if (!registration) {
+            return res.status(200).json({
+                hasRegistration: false,
+                reviewStatus: 'pending',
+                isActive: false,
+                rejectionReason: '',
+            })
+        }
+
+        return res.status(200).json({
+            hasRegistration: true,
+            reviewStatus: registration.reviewStatus || 'pending',
+            isActive: Boolean(registration.isActive),
+            rejectionReason: registration.rejectionReason || '',
+            reviewedAt: registration.reviewedAt || null,
+        })
+    } catch (err) {
+        console.error('Error occurred while getChefReviewStatus in chefRegister controller:', err.message)
+        return res.status(500).json({ message: 'Server error' })
+    }
+}
+
 module.exports = {
-    createChefRegister,
+    createChefRegister: createChefRegisterAndBroadcast,
+    getChefReviewStatus,
 }
