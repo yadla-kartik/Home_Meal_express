@@ -2,17 +2,21 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CircleCheck, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import logo from '../../../assets/logo.png'
+import LoadingSpinner from '../../../components/LoadingSpinner'
+import { adminCookieCheck, adminLogin, adminSignup } from '../../../../services/adminAuthService'
 
 function AdminLogin() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('signup')
   const [showSignupPassword, setShowSignupPassword] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authStatus, setAuthStatus] = useState('loading')
 
   const [signupForm, setSignupForm] = useState({
     fullName: '',
     email: '',
-    adminCode: '',
+    phone: '',
     password: '',
   })
 
@@ -31,14 +35,67 @@ function AdminLogin() {
     setLoginForm((prev) => ({ ...prev, [key]: event.target.value }))
   }
 
-  const handleSignup = (event) => {
+  React.useEffect(() => {
+    let isMounted = true
+
+    const checkAuth = async () => {
+      const res = await adminCookieCheck()
+      if (!isMounted) return
+
+      if (res?.adminUser) {
+        navigate('/admin/dashboard', { replace: true })
+        return
+      }
+
+      setAuthStatus('ready')
+    }
+
+    checkAuth()
+
+    return () => {
+      isMounted = false
+    }
+  }, [navigate])
+
+  const handleSignup = async (event) => {
     event.preventDefault()
-    navigate('/admin/dashboard')
+    setIsSubmitting(true)
+
+    const res = await adminSignup({
+      name: signupForm.fullName,
+      email: signupForm.email,
+      phone: signupForm.phone,
+      password: signupForm.password,
+    })
+
+    setIsSubmitting(false)
+
+    if (res?.adminUser) {
+      navigate('/admin/dashboard', { replace: true })
+      return
+    }
+
+    window.alert(res?.message || 'Unable to create admin account')
   }
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault()
-    navigate('/admin/dashboard')
+    setIsSubmitting(true)
+
+    const res = await adminLogin(loginForm)
+
+    setIsSubmitting(false)
+
+    if (res?.adminUser) {
+      navigate('/admin/dashboard', { replace: true })
+      return
+    }
+
+    window.alert(res?.message || 'Unable to login')
+  }
+
+  if (authStatus === 'loading' || isSubmitting) {
+    return <LoadingSpinner label="Loading admin access..." />
   }
 
   return (
@@ -119,18 +176,30 @@ function AdminLogin() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="admin-signup-code" className="theme-label text-[13px] font-semibold">
-                Admin Code
+              <label htmlFor="signup-phone" className="theme-label text-[13px] font-semibold">
+                Phone Number
               </label>
-              <input
-                id="admin-signup-code"
-                type="text"
-                value={signupForm.adminCode}
-                onChange={updateSignupField('adminCode')}
-                placeholder="Enter secure admin code"
-                required
-                className="theme-input h-11 w-full rounded-xl px-3 text-sm"
-              />
+              <div className="flex items-center gap-2">
+                <div className="theme-input flex h-11 w-[88px] shrink-0 items-center justify-center gap-2 rounded-xl px-3">
+                  <span className="rounded-full bg-[var(--theme-accent-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--theme-accent)]">
+                    IN
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--theme-text)]">
+                    +91
+                  </span>
+                </div>
+                <input
+                  id="signup-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Enter your phone number"
+                  value={signupForm.phone}
+                  onChange={updateSignupField('phone')}
+                  required
+                  maxLength={10}
+                  className="theme-input h-11 min-w-0 flex-1 rounded-xl px-3 text-sm"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

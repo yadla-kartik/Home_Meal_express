@@ -16,9 +16,11 @@ import DeliveryDashboard from './apps/delivery/deliveryDashboard'
 import { deliveryCookieCheck } from '../services/deliveryAuthService'
 import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
+import { adminCookieCheck } from '../services/adminAuthService'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
+const isAdminAuthorized = (res) => Boolean(res?.adminUser)
 
 function App() {
   const [isBooting, setIsBooting] = React.useState(true)
@@ -114,7 +116,19 @@ function App() {
 
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute
+            authCheck={adminCookieCheck}
+            isAuthorized={isAdminAuthorized}
+            redirectTo="/admin/login"
+            loadingLabel="Loading ..."
+          >
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }

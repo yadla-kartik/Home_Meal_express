@@ -56,9 +56,9 @@ function Login() {
 
       alert('Invalid Login')
       setIsSubmitting(false)
-    } catch {
+    } catch (err) {
       setIsSubmitting(false)
-      alert('Something went wrong')
+      alert(err?.message || 'Something went wrong')
     }
   }
 

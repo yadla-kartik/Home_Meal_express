@@ -29,6 +29,15 @@ export const chefCookieCheck = async () => {
   }
 }
 
+export const getChefReviewStatus = async () => {
+  try {
+    const res = await api.get('/chef/review-status')
+    return res.data
+  } catch (err) {
+    console.log('Error occured in chefAuthService', err.message)
+    return null
+  }
+}
 
 export const submitChefRegistration = async (data) => {
   try {
