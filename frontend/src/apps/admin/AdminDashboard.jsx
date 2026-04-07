@@ -1,13 +1,15 @@
 import React from 'react'
 import {
-  BadgeCheck,
+  CheckCircle,
   Clock3,
+  Download,
+  ExternalLink,
   MapPin,
   Phone,
-  ShieldAlert,
-  ShieldCheck,
   Store,
   UserRound,
+  X,
+  XCircle,
 } from 'lucide-react'
 import Navbar from './Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -19,6 +21,8 @@ import {
 import { getAdminSocket } from '../../../services/socket'
 
 const BACKEND_URL = 'http://localhost:5000'
+const surfaceShellCls =
+  'rounded-[22px] border border-[var(--theme-chip-border)] bg-white shadow-[var(--theme-shadow-card)]'
 
 const formatDate = (value) => {
   if (!value) return 'Just now'
@@ -35,19 +39,12 @@ const buildImageUrl = (path) => {
   return path.startsWith('http') ? path : `${BACKEND_URL}${path}`
 }
 
-function StatCard({ label, value, icon: Icon }) {
-  return (
-    <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[var(--theme-shadow-soft)]">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-          {label}
-        </p>
-        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
-          <Icon size={18} />
-        </span>
-      </div>
-      <p className="mt-3 text-3xl font-bold text-[var(--theme-text)]">{value}</p>
-    </div>
+const mergeApprovals = (current, incoming) => {
+  const map = new Map()
+  current.forEach((item) => map.set(item.id, item))
+  incoming.forEach((item) => map.set(item.id, item))
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
   )
 }
 
@@ -56,31 +53,35 @@ function QueueItem({ approval, isSelected, onSelect }) {
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-[22px] border p-4 text-left transition ${
+      className={`w-full rounded-[20px] border px-4 py-4 text-left transition ${
         isSelected
-          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)]/45 shadow-[var(--theme-shadow-button)]'
-          : 'border-[var(--theme-chip-border)] bg-white shadow-[var(--theme-shadow-soft)] hover:-translate-y-0.5'
+          ? 'border-[rgba(249,115,22,0.34)] bg-[linear-gradient(180deg,#fff9f4_0%,#ffeddc_58%,#ffe4cb_100%)] shadow-[0_16px_32px_rgba(249,115,22,0.14)]'
+          : 'border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5'
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-[var(--theme-text)]">{approval.kitchenName}</p>
+          <p className="text-[15px] font-semibold text-[var(--theme-text)]">{approval.kitchenName}</p>
           <p className="mt-1 text-xs text-[var(--theme-muted)]">
-            {approval.chef.name}  {approval.cuisine}
+            {approval.chef.name} · {approval.cuisine}
           </p>
         </div>
-        <span className="rounded-full border border-[var(--theme-chip-border)] bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-accent)]">
+        <span
+          className={`rounded-full border border-[rgba(249,115,22,0.18)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-accent)] ${
+            isSelected ? 'bg-white' : 'bg-[#fff7ef]'
+          }`}
+        >
           Pending
         </span>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--theme-muted)]">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-[12px] text-[var(--theme-muted)]">
         <span className="inline-flex items-center gap-1.5">
-          <MapPin size={14} />
+          <MapPin size={13} />
           {approval.nearestStation}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Clock3 size={14} />
+          <Clock3 size={13} />
           {formatDate(approval.createdAt)}
         </span>
       </div>
@@ -90,12 +91,70 @@ function QueueItem({ approval, isSelected, onSelect }) {
 
 function DetailPill({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-[18px] border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,#fffaf4,#fff)] p-3">
+    <div className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3">
       <div className="flex items-center gap-2 text-[var(--theme-accent)]">
-        <Icon size={15} />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+        <Icon size={13} />
+        <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">{label}</p>
       </div>
-      <p className="mt-2 text-sm font-semibold text-[var(--theme-text)]">{value}</p>
+      <p className="mt-2 text-[13px] font-semibold text-[var(--theme-text)]">{value}</p>
+    </div>
+  )
+}
+
+const getFileName = (path, fallback) => {
+  if (!path) return fallback
+  const clean = path.split('?')[0]
+  const parts = clean.split('/')
+  return parts[parts.length - 1] || fallback
+}
+
+function ImageCard({ label, imagePath, alt, onOpen }) {
+  const imageUrl = buildImageUrl(imagePath)
+  const fileName = getFileName(imagePath, label)
+
+  return (
+    <div className="rounded-[16px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-3 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+            {label}
+          </p>
+          <p className="mt-1 truncate text-[12px] font-semibold text-[var(--theme-text)]">
+            {fileName}
+          </p>
+        </div>
+
+        <a
+          href={imageUrl}
+          download={fileName}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(249,115,22,0.16)] bg-[var(--theme-accent-soft)] px-2.5 py-1.5 text-[10px] font-semibold text-[var(--theme-accent)] transition hover:bg-white"
+        >
+          <Download size={12} />
+          Download
+        </a>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onOpen({ label, imageUrl, fileName, alt })}
+        className="group mt-3 block w-full overflow-hidden rounded-[12px] bg-[linear-gradient(180deg,#fffaf4,#fff)] outline-none ring-0 transition hover:-translate-y-0.5"
+      >
+        <div className="relative flex h-52 w-full items-center justify-center overflow-hidden rounded-[12px] bg-[linear-gradient(180deg,#fffaf4,#fff)]">
+          <img
+            src={imageUrl}
+            alt={alt}
+            className="h-full w-full cursor-pointer object-contain bg-[#fffdfa] p-1 transition duration-300 group-hover:scale-[1.02]"
+          />
+
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_34%,rgba(15,23,42,0.06)_76%,rgba(15,23,42,0.24)_100%)] opacity-0 transition duration-300 group-hover:opacity-100" />
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[11px] font-semibold text-[var(--theme-text)] shadow-[0_10px_24px_rgba(15,23,42,0.16)] opacity-0 transition duration-300 group-hover:opacity-100">
+            <ExternalLink size={12} />
+            Open
+          </span>
+        </div>
+      </button>
     </div>
   )
 }
@@ -105,6 +164,10 @@ function AdminDashboard() {
   const [selectedId, setSelectedId] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(true)
   const [isActing, setIsActing] = React.useState('')
+  const [previewImage, setPreviewImage] = React.useState(null)
+  const [isRejectModalOpen, setIsRejectModalOpen] = React.useState(false)
+  const [rejectionReason, setRejectionReason] = React.useState('')
+  const [rejectError, setRejectError] = React.useState('')
 
   React.useEffect(() => {
     let isMounted = true
@@ -114,10 +177,15 @@ function AdminDashboard() {
       if (!isMounted) return
 
       const nextApprovals = Array.isArray(res?.approvals) ? res.approvals : []
-      setApprovals(nextApprovals)
-      setSelectedId((prev) => {
-        if (prev && nextApprovals.some((item) => item.id === prev)) return prev
-        return nextApprovals[0]?.id || ''
+      setApprovals((prev) => {
+        const mergedApprovals = mergeApprovals(prev, nextApprovals)
+        setSelectedId((selectedPrev) => {
+          if (selectedPrev && mergedApprovals.some((item) => item.id === selectedPrev)) {
+            return selectedPrev
+          }
+          return mergedApprovals[0]?.id || ''
+        })
+        return mergedApprovals
       })
       setIsLoading(false)
     }
@@ -132,14 +200,18 @@ function AdminDashboard() {
   React.useEffect(() => {
     const socket = getAdminSocket()
 
+    const joinAdminRoom = () => {
+      socket.emit('join-admin-room')
+    }
+
+    socket.on('connect', joinAdminRoom)
     socket.connect()
-    socket.emit('join-admin-room')
+    if (socket.connected) {
+      joinAdminRoom()
+    }
 
     const handleCreated = (approval) => {
-      setApprovals((prev) => {
-        if (prev.some((item) => item.id === approval.id)) return prev
-        return [approval, ...prev]
-      })
+      setApprovals((prev) => mergeApprovals(prev, [approval]))
       setSelectedId((prev) => prev || approval.id)
     }
 
@@ -155,6 +227,7 @@ function AdminDashboard() {
     socket.on('chef:approval-updated', handleUpdated)
 
     return () => {
+      socket.off('connect', joinAdminRoom)
       socket.off('chef:approval-created', handleCreated)
       socket.off('chef:approval-updated', handleUpdated)
       socket.disconnect()
@@ -174,18 +247,45 @@ function AdminDashboard() {
 
   const selectedApproval = approvals.find((item) => item.id === selectedId) || approvals[0] || null
 
-  const handleDecision = async (type) => {
+  const closeRejectModal = () => {
+    if (isActing === 'reject') return
+    setIsRejectModalOpen(false)
+    setRejectionReason('')
+    setRejectError('')
+  }
+
+  const handleApprove = async () => {
     if (!selectedApproval || isActing) return
 
-    setIsActing(type)
-    const response = type === 'approve'
-      ? await approveChefApproval(selectedApproval.id)
-      : await rejectChefApproval(selectedApproval.id)
+    setIsActing('approve')
+    const response = await approveChefApproval(selectedApproval.id)
     setIsActing('')
 
     if (!response?.approval && !response?.message?.includes('successfully')) {
       window.alert(response?.message || 'Unable to update chef approval')
     }
+  }
+
+  const handleRejectSubmit = async () => {
+    if (!selectedApproval || isActing) return
+
+    const trimmedReason = rejectionReason.trim()
+    if (!trimmedReason) {
+      setRejectError('Please enter a rejection reason')
+      return
+    }
+
+    setRejectError('')
+    setIsActing('reject')
+    const response = await rejectChefApproval(selectedApproval.id, trimmedReason)
+    setIsActing('')
+
+    if (!response?.approval && !response?.message?.includes('successfully')) {
+      setRejectError(response?.message || 'Unable to reject chef approval')
+      return
+    }
+
+    closeRejectModal()
   }
 
   if (isLoading) {
@@ -196,45 +296,20 @@ function AdminDashboard() {
     <div className="min-h-screen bg-[var(--theme-app-bg)]">
       <Navbar />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 pb-8 pt-24 sm:px-6 lg:px-8">
-        <section className="theme-card-lg rounded-[30px] border border-[var(--theme-chip-border)] bg-[linear-gradient(135deg,#fff7ef,#fffdf9_48%,#fff4eb)] p-5 sm:p-6">
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-chip-border)] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--theme-accent)]">
-                <ShieldCheck size={14} />
-                Approval control
-              </div>
-              <h1 className="mt-4 text-3xl font-bold leading-tight text-[var(--theme-text)] sm:text-4xl">
-                Review new chef registrations the moment they arrive.
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--theme-muted)]">
-                Every new chef registration appears here in real time. Open a request, review the details and accept or reject it instantly.
+      <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-8 pt-24 sm:px-6 lg:px-8">
+        <section className="grid gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">
+          <div className={`${surfaceShellCls} h-fit p-0`}>
+            <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
+                Pending chefs
               </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <StatCard label="Pending now" value={String(approvals.length)} icon={Clock3} />
-              <StatCard label="Live queue" value={approvals.length ? 'Active' : 'Quiet'} icon={ShieldAlert} />
-              <StatCard label="Updates" value="Realtime" icon={BadgeCheck} />
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[0.88fr_1.12fr]">
-          <div className="theme-card rounded-[28px] p-5 sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
-                  Pending chefs
-                </p>
-                <h2 className="mt-2 text-2xl font-bold text-[var(--theme-text)]">Approval queue</h2>
-              </div>
-              <span className="rounded-full border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--theme-accent)]">
+              <span className="rounded-full border border-[rgba(249,115,22,0.16)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--theme-accent)]">
                 {approvals.length} waiting
               </span>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="border-t border-[rgba(249,115,22,0.12)] px-3 pb-3 pt-3">
+              <div className="space-y-3">
               {approvals.length ? (
                 approvals.map((approval) => (
                   <QueueItem
@@ -245,102 +320,119 @@ function AdminDashboard() {
                   />
                 ))
               ) : (
-                <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]/35 p-6 text-center">
-                  <p className="text-lg font-semibold text-[var(--theme-text)]">No pending chef approvals</p>
+                <div className="rounded-[16px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-5 text-center shadow-[var(--theme-shadow-soft)]">
+                  <p className="text-base font-semibold text-[var(--theme-text)]">No pending chef approvals</p>
                   <p className="mt-2 text-sm text-[var(--theme-muted)]">
                     New chef registration requests will appear here automatically.
                   </p>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
-          <div className="theme-card rounded-[28px] p-5 sm:p-6">
+          <div className="flex flex-col gap-4">
             {selectedApproval ? (
               <>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
-                      Chef details
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold text-[var(--theme-text)]">
-                      {selectedApproval.kitchenName}
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--theme-muted)]">
-                      Review the chef profile, station reach and uploaded documents before approving access.
-                    </p>
+                <div className={`${surfaceShellCls} relative overflow-hidden p-4`}>
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24" />
+                  <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
+                        Chef details
+                      </p>
+                      <h2 className="mt-1.5 text-[19px] font-bold text-[var(--theme-text)]">
+                        {selectedApproval.kitchenName}
+                      </h2>
+                      <p className="mt-1.5 text-[12px] leading-5 text-[var(--theme-muted)]">
+                        Review the chef profile, station reach and uploaded documents before approving access.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRejectError('')
+                          setRejectionReason('')
+                          setIsRejectModalOpen(true)
+                        }}
+                        disabled={Boolean(isActing)}
+                        className="inline-flex items-center gap-1.5 rounded-2xl border border-[#fecaca] bg-white px-4 py-2.5 text-[14px] font-semibold text-[#dc2626] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <XCircle size={14} />
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        disabled={Boolean(isActing)}
+                        className="inline-flex items-center gap-1.5 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-[11px] font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <CheckCircle size={14} />
+                        {isActing === 'approve' ? 'Approving...' : 'Approve'}
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleDecision('reject')}
-                      disabled={Boolean(isActing)}
-                      className="rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {isActing === 'reject' ? 'Rejecting...' : 'Reject'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDecision('approve')}
-                      disabled={Boolean(isActing)}
-                      className="rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {isActing === 'approve' ? 'Approving...' : 'Approve'}
-                    </button>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <DetailPill icon={UserRound} label="Chef" value={selectedApproval.chef.name} />
+                    <DetailPill icon={Phone} label="Phone" value={selectedApproval.chef.phone} />
+                    <DetailPill icon={Store} label="Cuisine" value={selectedApproval.cuisine} />
+                    <DetailPill icon={MapPin} label="Nearest station" value={selectedApproval.nearestStation} />
                   </div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <DetailPill icon={UserRound} label="Chef" value={selectedApproval.chef.name} />
-                  <DetailPill icon={Phone} label="Phone" value={selectedApproval.chef.phone} />
-                  <DetailPill icon={Store} label="Cuisine" value={selectedApproval.cuisine}/>
-                  <DetailPill icon={MapPin} label="Nearest station" value={selectedApproval.nearestStation} />
-                </div>
-
-                <div className="mt-5 rounded-[24px] border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,#fffaf4,#fff)] p-4">
+                <div className={`${surfaceShellCls} p-4`}>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
                     Service profile
                   </p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <p className="text-sm text-[var(--theme-text)]"><span className="font-semibold">Experience:</span> {selectedApproval.experience} years</p>
-                    <p className="text-sm text-[var(--theme-text)]"><span className="font-semibold">Max orders:</span> {selectedApproval.maxOrders} per day</p>
-                    <p className="text-sm text-[var(--theme-text)]"><span className="font-semibold">Timing:</span> {selectedApproval.openTime} - {selectedApproval.closeTime}</p>
-                    <p className="text-sm text-[var(--theme-text)]"><span className="font-semibold">Prep time:</span> {selectedApproval.prepTime} mins</p>
+                    <p className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]"><span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Experience</span><span className="mt-2 block font-semibold">{selectedApproval.experience} years</span></p>
+                    <p className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]"><span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Max orders / day</span><span className="mt-2 block font-semibold">{selectedApproval.maxOrders} per day</span></p>
+                    <p className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]"><span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Timing</span><span className="mt-2 block font-semibold">{selectedApproval.openTime} - {selectedApproval.closeTime}</span></p>
+                    <p className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]"><span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Prep time</span><span className="mt-2 block font-semibold">{selectedApproval.prepTime} mins</span></p>
                   </div>
-                  <p className="mt-3 text-sm text-[var(--theme-text)]">
-                    <span className="font-semibold">Address:</span> {selectedApproval.addressLine}, {selectedApproval.city}, {selectedApproval.state} - {selectedApproval.zip}
+                  <p className="mt-3 rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Available days</span>
+                    <span className="mt-2 block font-semibold">{selectedApproval.availableDays.join(', ') || 'Not provided'}</span>
                   </p>
-                  <p className="mt-2 text-sm text-[var(--theme-text)]">
-                    <span className="font-semibold">Available days:</span> {selectedApproval.availableDays.join(', ') || 'Not provided'}
+                  <p className="mt-3 rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3 text-[13px] text-[var(--theme-text)]">
+                    <span className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">Full address</span>
+                    <span className="mt-2 block font-semibold">{selectedApproval.addressLine}, {selectedApproval.city}, {selectedApproval.state} - {selectedApproval.zip}</span>
                   </p>
                 </div>
 
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[var(--theme-shadow-soft)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                      Chef photo
-                    </p>
-                    <img
-                      src={buildImageUrl(selectedApproval.documents.chefPhoto)}
-                      alt={selectedApproval.chef.name}
-                      className="mt-3 h-64 w-full rounded-[20px] object-cover"
-                    />
+                <div className={`${surfaceShellCls} p-4`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                        Chef photos &amp; ID proof
+                      </p>
+                      <p className="mt-1.5 text-[12px] leading-5 text-[var(--theme-muted)]">
+                        Open any image to inspect it closely or download the original file.
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[var(--theme-shadow-soft)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                      ID proof
-                    </p>
-                    <img
-                      src={buildImageUrl(selectedApproval.documents.idProof)}
+
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <ImageCard
+                      label="Chef photo"
+                      imagePath={selectedApproval.documents.chefPhoto}
+                      alt={selectedApproval.chef.name}
+                      onOpen={setPreviewImage}
+                    />
+                    <ImageCard
+                      label="ID proof"
+                      imagePath={selectedApproval.documents.idProof}
                       alt="Chef ID proof"
-                      className="mt-3 h-64 w-full rounded-[20px] object-cover"
+                      onOpen={setPreviewImage}
                     />
                   </div>
                 </div>
               </>
             ) : (
-              <div className="flex min-h-[420px] items-center justify-center rounded-[24px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]/25 p-6 text-center">
+              <div className={`${surfaceShellCls} flex min-h-[420px] items-center justify-center p-6 text-center`}>
                 <div>
                   <p className="text-xl font-semibold text-[var(--theme-text)]">Queue is clear right now</p>
                   <p className="mt-2 text-sm text-[var(--theme-muted)]">
@@ -352,6 +444,117 @@ function AdminDashboard() {
           </div>
         </section>
       </main>
+
+      {previewImage && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(15,23,42,0.7)] px-4 py-6 backdrop-blur-sm">
+          <div className="relative w-full max-w-5xl rounded-[28px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[0_24px_60px_rgba(15,23,42,0.24)] sm:p-5">
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:text-slate-700"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-4 flex flex-col gap-3 pr-14 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                  {previewImage.label}
+                </p>
+                <p className="mt-1 truncate text-base font-semibold text-[var(--theme-text)]">
+                  {previewImage.fileName}
+                </p>
+              </div>
+
+              <a
+                href={previewImage.imageUrl}
+                download={previewImage.fileName}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--theme-shadow-button)]"
+              >
+                <Download size={15} />
+                Download
+              </a>
+            </div>
+
+            <div className="overflow-hidden rounded-[22px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]/25">
+              <img
+                src={previewImage.imageUrl}
+                alt={previewImage.alt}
+                className="max-h-[75vh] w-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(15,23,42,0.58)] px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[28px] border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,#fffdf9,#fff6ee)] p-5 shadow-[0_24px_60px_rgba(15,23,42,0.24)] sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#dc2626]">
+                  Reject chef request
+                </p>
+                <h3 className="mt-2 text-2xl font-bold text-[var(--theme-text)]">
+                  Add rejection reason
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-muted)]">
+                  This reason will be saved and shown to the chef inside the rejected status screen.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                Rejection reason
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(event) => {
+                  setRejectionReason(event.target.value)
+                  if (rejectError) setRejectError('')
+                }}
+                rows={5}
+                placeholder="Write why this profile is being rejected and what needs to be corrected."
+                className="mt-2 w-full rounded-[22px] border border-[var(--theme-chip-border)] bg-white px-4 py-3 text-sm leading-6 text-[var(--theme-text)] outline-none transition placeholder:text-slate-400 focus:border-[var(--theme-accent)]"
+              />
+              {rejectError ? (
+                <p className="mt-2 text-sm font-medium text-[#dc2626]">{rejectError}</p>
+              ) : null}
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                disabled={isActing === 'reject'}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRejectSubmit}
+                disabled={isActing === 'reject'}
+                className="rounded-2xl bg-[#dc2626] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(220,38,38,0.22)] transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isActing === 'reject' ? 'Submitting...' : 'Submit rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 const chefRegister = require('../models/chefRegister')
-const { emitToAdmins } = require('../socket')
+const { emitToAdmins, emitToChef } = require('../socket')
 const { serializeChefApproval } = require('../utils/chefApprovalPayload')
 
 const CHEF_POPULATE = 'createdBy'
@@ -49,6 +49,8 @@ const approveChefApproval = async (req, res) => {
 
     const payload = serializeChefApproval(approval)
     emitToAdmins('chef:approval-updated', payload)
+    emitToChef(payload.chef?.id, 'chef:approval-updated', payload)
+    emitToChef(payload.chef?.id, 'chef:review-status', payload)
 
     return res.status(200).json({
       message: 'Chef approved successfully',
@@ -63,6 +65,10 @@ const approveChefApproval = async (req, res) => {
 const rejectChefApproval = async (req, res) => {
   try {
     const rejectionReason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : ''
+
+    if (!rejectionReason) {
+      return res.status(400).json({ message: 'Rejection reason is required' })
+    }
 
     const approval = await chefRegister
       .findByIdAndUpdate(
@@ -83,6 +89,8 @@ const rejectChefApproval = async (req, res) => {
 
     const payload = serializeChefApproval(approval)
     emitToAdmins('chef:approval-updated', payload)
+    emitToChef(payload.chef?.id, 'chef:approval-updated', payload)
+    emitToChef(payload.chef?.id, 'chef:review-status', payload)
 
     return res.status(200).json({
       message: 'Chef rejected successfully',

@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { AlertTriangle, CircleAlert, FileEdit, ShieldX } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CircleAlert, FileEdit, ShieldX } from 'lucide-react'
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -24,7 +24,7 @@ const itemVariants = {
   },
 }
 
-function ChefRejectedWorkspace({ rejectionReason }) {
+function ChefRejectedWorkspace({ rejectionReason, onReregister }) {
   const safeReason = rejectionReason?.trim() || 'Your submitted details need an update before approval can continue.'
 
   return (
@@ -127,6 +127,20 @@ function ChefRejectedWorkspace({ rejectionReason }) {
                   </p>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onReregister}
+                className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-3 text-sm font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:-translate-y-0.5"
+              >
+                Re-register now
+                <ArrowRight size={16} />
+              </button>
+              <p className="text-sm leading-6 text-[var(--theme-muted)]">
+                Update your details and send the profile back for review.
+              </p>
             </div>
           </motion.div>
         </div>

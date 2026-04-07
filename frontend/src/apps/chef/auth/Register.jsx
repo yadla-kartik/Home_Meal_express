@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Popuplogin from '../components/Popuplogin'
-import { chefCookieCheck, submitChefRegistration } from '../../../../services/chefAuthService'
+import {
+  chefCookieCheck,
+  getChefReviewStatus,
+  submitChefRegistration,
+} from '../../../../services/chefAuthService'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -38,8 +43,12 @@ const upiPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z]+$/
 const accountNumberPattern = /^\d+$/
 
 function Register() {
+  const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+  const [showResubmittedPopup, setShowResubmittedPopup] = useState(false)
+  const [showAlreadyRegisteredPopup, setShowAlreadyRegisteredPopup] = useState(false)
+  const [showAlreadySubmittedPopup, setShowAlreadySubmittedPopup] = useState(false)
   const [selectedDays, setSelectedDays] = useState([])
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -75,6 +84,16 @@ function Register() {
     const loadChefProfile = async () => {
       const res = await chefCookieCheck()
       if (!isMounted || !res?.chefUser) return
+
+      if (res.chefUser.isRegistered) {
+        const reviewRes = await getChefReviewStatus()
+        if (!isMounted) return
+
+        if (reviewRes?.hasRegistration && reviewRes?.reviewStatus !== 'rejected') {
+          setShowAlreadyRegisteredPopup(true)
+          return
+        }
+      }
 
       setForm((prev) => ({
         ...prev,
@@ -289,12 +308,22 @@ function Register() {
 
       const registerRes = await submitChefRegistration(payload)
 
-      if (!registerRes?.message || registerRes.message !== 'Chef registered successfully') {
-        alert(registerRes?.message || 'Unable to submit chef registration')
+      if (registerRes?.message === 'Chef registered successfully') {
+        setShowSuccessPopup(true)
         return
       }
 
-      setShowSuccessPopup(true)
+      if (registerRes?.message === 'Chef registration resubmitted successfully') {
+        setShowResubmittedPopup(true)
+        return
+      }
+
+      if (registerRes?.message === 'Chef registration already exists') {
+        setShowAlreadySubmittedPopup(true)
+        return
+      }
+
+      alert(registerRes?.message || 'Unable to submit chef registration')
     } catch (err) {
       alert(err.message || 'Unable to submit chef registration')
     } finally {
@@ -438,6 +467,46 @@ function Register() {
         name={form.chefName || form.kitchenName}
         successRedirectTo="/chef/dashboard"
         onClose={() => setShowSuccessPopup(false)}
+      />
+
+      <Popuplogin
+        isOpen={showResubmittedPopup}
+        mode="resubmitted-success"
+        name={form.chefName || form.kitchenName}
+        successRedirectTo="/chef/dashboard"
+        onClose={() => setShowResubmittedPopup(false)}
+      />
+
+      <Popuplogin
+        isOpen={showAlreadyRegisteredPopup}
+        mode="already-registered"
+        name={form.chefName || 'Chef'}
+        successRedirectTo="/chef/dashboard"
+        onClose={() => {
+          setShowAlreadyRegisteredPopup(false)
+          navigate('/chef/dashboard', {
+            state: {
+              hideChefPopup: true,
+              chefRegistered: true,
+            },
+          })
+        }}
+      />
+
+      <Popuplogin
+        isOpen={showAlreadySubmittedPopup}
+        mode="already-submitted"
+        name={form.chefName || 'Chef'}
+        successRedirectTo="/chef/dashboard"
+        onClose={() => {
+          setShowAlreadySubmittedPopup(false)
+          navigate('/chef/dashboard', {
+            state: {
+              hideChefPopup: true,
+              chefRegistered: true,
+            },
+          })
+        }}
       />
     </div>
   )
