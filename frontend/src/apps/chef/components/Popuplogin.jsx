@@ -12,6 +12,9 @@ function Popuplogin({
 }) {
   const navigate = useNavigate()
   const isSuccessMode = mode === 'success'
+  const isResubmittedMode = mode === 'resubmitted-success'
+  const isAlreadyRegisteredMode = mode === 'already-registered'
+  const isAlreadySubmittedMode = mode === 'already-submitted'
   const safeName = (name || '').trim() || 'User'
 
   if (!isOpen) return null
@@ -26,7 +29,7 @@ function Popuplogin({
     navigate('/chef/register')
   }
 
-  const handleSuccessContinue = () => {
+  const handleDashboardContinue = () => {
     if (onClose) {
       onClose()
     }
@@ -39,8 +42,8 @@ function Popuplogin({
   }
 
   const handleClose = () => {
-    if (isSuccessMode) {
-      handleSuccessContinue()
+    if (isSuccessMode || isResubmittedMode || isAlreadyRegisteredMode || isAlreadySubmittedMode) {
+      handleDashboardContinue()
       return
     }
 
@@ -68,22 +71,42 @@ function Popuplogin({
         <div className="absolute -top-9 left-1/2 flex h-20 w-20 -translate-x-1/2 items-center justify-center rounded-full border border-white/80 bg-[linear-gradient(180deg,#fff6ee,#ffe7d1)] shadow-[0_12px_24px_rgba(249,115,22,0.2)]">
           {isSuccessMode ? (
             <CircleCheckBig size={34} className="text-[#16a34a]" />
+          ) : isResubmittedMode ? (
+            <CircleCheckBig size={34} className="text-[#16a34a]" />
+          ) : isAlreadyRegisteredMode ? (
+            <ShieldAlert size={34} className="text-[var(--theme-accent)]" />
+          ) : isAlreadySubmittedMode ? (
+            <ShieldAlert size={34} className="text-[var(--theme-accent)]" />
           ) : (
             <ChefHat size={34} className="text-[var(--theme-accent)]" />
           )}
         </div>
 
         <h2 className="mt-4 text-center text-xl font-bold text-[var(--theme-text)]">
-          {isSuccessMode ? `Successfully registered, ${safeName}!` : `Welcome, ${safeName}!`}
+          {isSuccessMode
+            ? `Successfully registered, ${safeName}!`
+            : isResubmittedMode
+              ? `Successfully resubmitted, ${safeName}!`
+            : isAlreadyRegisteredMode
+              ? `Already registered, ${safeName}!`
+              : isAlreadySubmittedMode
+                ? `Already submitted, ${safeName}!`
+              : `Welcome, ${safeName}!`}
         </h2>
 
         <p className="mt-2 text-center text-sm leading-6 text-[var(--theme-muted)]">
           {isSuccessMode
             ? 'Your kitchen profile has been submitted successfully. We will review it shortly.'
-            : 'You logged in successfully. Complete your chef registration to continue with the next steps.'}
+            : isResubmittedMode
+              ? 'Your updated kitchen profile has been submitted again successfully. We will review it shortly.'
+            : isAlreadyRegisteredMode
+              ? 'Your chef registration is already present. Continue to the dashboard to see the current review status.'
+              : isAlreadySubmittedMode
+                ? 'This chef profile has already been submitted. Continue to the dashboard to check the current approval status.'
+              : 'You logged in successfully. Complete your chef registration to continue with the next steps.'}
         </p>
 
-        {isSuccessMode && (
+        {(isSuccessMode || isResubmittedMode || isAlreadyRegisteredMode || isAlreadySubmittedMode) && (
           <div className="mt-4 rounded-[20px] border border-amber-200 bg-[linear-gradient(135deg,#fff7ed,#fffbeb)] px-4 py-3 text-left shadow-[0_10px_24px_rgba(245,158,11,0.12)]">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -105,10 +128,14 @@ function Popuplogin({
         <div className="mt-5 grid gap-3">
           <button
             type="button"
-            onClick={isSuccessMode ? handleSuccessContinue : handleRegister}
+            onClick={
+              isSuccessMode || isResubmittedMode || isAlreadyRegisteredMode || isAlreadySubmittedMode
+                ? handleDashboardContinue
+                : handleRegister
+            }
             className="w-full rounded-xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_22px_rgba(249,115,22,0.28)] transition active:scale-[0.98]"
           >
-            {isSuccessMode ? 'Continue' : 'Register Now'}
+            {isSuccessMode || isResubmittedMode || isAlreadyRegisteredMode || isAlreadySubmittedMode ? 'Continue' : 'Register Now'}
           </button>
         </div>
       </div>

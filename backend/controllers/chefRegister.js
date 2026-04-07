@@ -4,7 +4,7 @@ const chefAuth = require('../models/chefAuth')
 const chefRegister = require('../models/chefRegister')
 const { generateToken } = require('../utils/jwtAuth')
 const { encryptField } = require('../utils/fieldCrypto')
-const { emitToAdmins } = require('../socket')
+const { emitToAdmins, emitToChef } = require('../socket')
 const { serializeChefApproval } = require('../utils/chefApprovalPayload')
 
 const cleanupUploadedFiles = (files = {}) => {
@@ -28,11 +28,6 @@ const createChefRegister = async (req, res) => {
         }
 
         const existingRegistration = await chefRegister.findOne({ createdBy: chefId })
-
-        if (existingRegistration) {
-            cleanupUploadedFiles(req.files)
-            return res.status(409).json({ message: 'Chef registration already exists' })
-        }
 
         const {
             name,
@@ -94,8 +89,7 @@ const createChefRegister = async (req, res) => {
             }
         }
 
-        const registration = await chefRegister.create({
-            createdBy: chefId,
+        const nextRegistrationPayload = {
             kitchenName,
             cuisine,
             speciality,
@@ -116,7 +110,47 @@ const createChefRegister = async (req, res) => {
             accountHolder: encryptField(accountHolder),
             bankName: encryptField(bankName),
             ifscCode: encryptField(ifscCode),
-        })
+            isActive: false,
+            reviewStatus: 'pending',
+            reviewedAt: null,
+            rejectionReason: '',
+        }
+
+        let registration
+
+        if (existingRegistration) {
+            if (existingRegistration.reviewStatus !== 'rejected') {
+                cleanupUploadedFiles(req.files)
+                return res.status(409).json({ message: 'Chef registration already exists' })
+            }
+
+            const oldFiles = {
+                idProof: existingRegistration.idProof,
+                chefPhoto: existingRegistration.chefPhoto,
+            }
+
+            registration = await chefRegister.findByIdAndUpdate(
+                existingRegistration._id,
+                nextRegistrationPayload,
+                {
+                    new: true,
+                    runValidators: true,
+                },
+            )
+
+            ;[oldFiles.idProof, oldFiles.chefPhoto].forEach((filePath) => {
+                if (!filePath) return
+                const absolutePath = path.resolve(`.${filePath}`)
+                if (fs.existsSync(absolutePath)) {
+                    fs.unlinkSync(absolutePath)
+                }
+            })
+        } else {
+            registration = await chefRegister.create({
+                createdBy: chefId,
+                ...nextRegistrationPayload,
+            })
+        }
 
         const updatedChef = await chefAuth.findByIdAndUpdate(
             chefId,
@@ -147,7 +181,7 @@ const createChefRegister = async (req, res) => {
         })
 
         return res.status(201).json({
-            message: 'Chef registered successfully',
+            message: existingRegistration ? 'Chef registration resubmitted successfully' : 'Chef registered successfully',
             chefUser: updatedChef,
             registration,
             token: Cheftoken,
@@ -177,6 +211,7 @@ const createChefRegisterAndBroadcast = async (req, res) => {
                 createdBy: payload.chefUser,
             })
             emitToAdmins('chef:approval-created', approvalPayload)
+            emitToChef(approvalPayload.chef?.id, 'chef:review-status', approvalPayload)
         }
 
         return originalJson(payload)

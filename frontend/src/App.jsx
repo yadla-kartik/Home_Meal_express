@@ -17,6 +17,7 @@ import { deliveryCookieCheck } from '../services/deliveryAuthService'
 import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
 import { adminCookieCheck } from '../services/adminAuthService'
+import Chefff from './apps/admin/Chefff'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -126,6 +127,19 @@ function App() {
             loadingLabel="Loading ..."
           >
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard2"
+        element={
+          <ProtectedRoute
+            authCheck={adminCookieCheck}
+            isAuthorized={isAdminAuthorized}
+            redirectTo="/admin/login"
+            loadingLabel="Loading ..."
+          >
+            <Chefff />
           </ProtectedRoute>
         }
       />

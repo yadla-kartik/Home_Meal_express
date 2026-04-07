@@ -51,9 +51,9 @@ export const approveChefApproval = async (approvalId) => {
   }
 }
 
-export const rejectChefApproval = async (approvalId) => {
+export const rejectChefApproval = async (approvalId, reason) => {
   try {
-    const res = await api.patch(`/admin/chef-approvals/${approvalId}/reject`)
+    const res = await api.patch(`/admin/chef-approvals/${approvalId}/reject`, { reason })
     return res.data
   } catch (err) {
     console.log('Error occured in adminAuthService', err.message)
