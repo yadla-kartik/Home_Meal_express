@@ -20,7 +20,7 @@ import {
 } from '../../../services/adminAuthService'
 import { getAdminSocket } from '../../../services/socket'
 
-const BACKEND_URL = 'http://localhost:5000'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 const surfaceShellCls =
   'rounded-[22px] border border-[var(--theme-chip-border)] bg-white shadow-[var(--theme-shadow-card)]'
 

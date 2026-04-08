@@ -47,6 +47,8 @@ const createChefRegister = async (req, res) => {
             openTime,
             closeTime,
             availableDays,
+            idType,
+            idNumber,
             upiOrAccount,
             accountHolder,
             bankName,
@@ -55,10 +57,29 @@ const createChefRegister = async (req, res) => {
 
         const idProofFile = req.files?.idProof?.[0]
         const chefPhotoFile = req.files?.chefPhoto?.[0]
+        const kitchenPhotoFile = req.files?.kitchenPhoto?.[0]
 
-        if (!idProofFile || !chefPhotoFile) {
+        if (!idProofFile || !chefPhotoFile || !kitchenPhotoFile) {
             cleanupUploadedFiles(req.files)
-            return res.status(400).json({ message: 'Please upload both ID Proof and Chef Photo in PNG, JPG or JPEG format.' })
+            return res.status(400).json({ message: 'Please upload ID Proof, Chef Photo and Kitchen Photo in PNG, JPG or JPEG format.' })
+        }
+
+        const normalizedIdType = typeof idType === 'string' ? idType.trim().toLowerCase() : ''
+        const normalizedIdNumber = typeof idNumber === 'string' ? idNumber.trim().toUpperCase() : ''
+
+        if (!['aadhaar', 'pan'].includes(normalizedIdType)) {
+            cleanupUploadedFiles(req.files)
+            return res.status(400).json({ message: 'Please select a valid ID type.' })
+        }
+
+        if (normalizedIdType === 'aadhaar' && !/^\d{12}$/.test(normalizedIdNumber)) {
+            cleanupUploadedFiles(req.files)
+            return res.status(400).json({ message: 'Aadhaar number must be exactly 12 digits.' })
+        }
+
+        if (normalizedIdType === 'pan' && !/^[A-Z]{5}\d{4}[A-Z]$/.test(normalizedIdNumber)) {
+            cleanupUploadedFiles(req.files)
+            return res.status(400).json({ message: 'PAN must follow format: 5 letters, 4 digits, 1 letter.' })
         }
 
         const duplicateChef = await chefAuth.findOne({
@@ -105,7 +126,10 @@ const createChefRegister = async (req, res) => {
             closeTime,
             availableDays: parsedAvailableDays,
             idProof: `/uploads/chef-register/${idProofFile.filename}`,
+            idType: normalizedIdType,
+            idNumber: encryptField(normalizedIdNumber),
             chefPhoto: `/uploads/chef-register/${chefPhotoFile.filename}`,
+            kitchenPhoto: `/uploads/chef-register/${kitchenPhotoFile.filename}`,
             upiOrAccount: encryptField(upiOrAccount),
             accountHolder: encryptField(accountHolder),
             bankName: encryptField(bankName),
@@ -127,6 +151,7 @@ const createChefRegister = async (req, res) => {
             const oldFiles = {
                 idProof: existingRegistration.idProof,
                 chefPhoto: existingRegistration.chefPhoto,
+                kitchenPhoto: existingRegistration.kitchenPhoto,
             }
 
             registration = await chefRegister.findByIdAndUpdate(
@@ -138,7 +163,7 @@ const createChefRegister = async (req, res) => {
                 },
             )
 
-            ;[oldFiles.idProof, oldFiles.chefPhoto].forEach((filePath) => {
+            ;[oldFiles.idProof, oldFiles.chefPhoto, oldFiles.kitchenPhoto].forEach((filePath) => {
                 if (!filePath) return
                 const absolutePath = path.resolve(`.${filePath}`)
                 if (fs.existsSync(absolutePath)) {

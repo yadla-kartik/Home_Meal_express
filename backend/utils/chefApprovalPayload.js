@@ -29,9 +29,11 @@ function serializeChefApproval(registration) {
     openTime: registration.openTime || '',
     closeTime: registration.closeTime || '',
     availableDays: Array.isArray(registration.availableDays) ? registration.availableDays : [],
+    idType: registration.idType || '',
     documents: {
       idProof: registration.idProof || '',
       chefPhoto: registration.chefPhoto || '',
+      kitchenPhoto: registration.kitchenPhoto || '',
     },
   }
 }

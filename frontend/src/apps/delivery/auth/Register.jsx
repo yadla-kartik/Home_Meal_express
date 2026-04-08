@@ -1,52 +1,45 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Popuplogin from '../components/Popuplogin'
+import DeliveryPopuplogin from '../components/DeliveryPopuplogin'
 import {
-  chefCookieCheck,
-  getChefReviewStatus,
-  submitChefRegistration,
-} from '../../../../services/chefAuthService'
+  deliveryCookieCheck,
+  getDeliveryReviewStatus,
+  submitDeliveryRegistration,
+} from '../../../../services/deliveryAuthService'
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const PAGE_FIELDS = {
-  1: ['chefName', 'kitchenName', 'phone', 'email', 'cuisine', 'speciality', 'experience', 'maxOrders'],
-  2: ['addressLine', 'city', 'state', 'zip', 'nearestStation', 'prepTime', 'openTime', 'closeTime', 'availableDays'],
-  3: ['idType', 'idNumber', 'idProof', 'chefPhoto', 'kitchenPhoto', 'upiOrAccount', 'accountHolder', 'bankName', 'ifscCode'],
+  1: ['name', 'mobileNo', 'email', 'vehicleType', 'vehicleNumber', 'drivingLicenseNumber'],
+  2: ['address', 'city', 'state', 'pincode', 'nearestStation', 'availableDays', 'startTime', 'endTime'],
+  3: ['profilePhoto', 'idType', 'idNumber', 'idProofImage', 'accountNumber', 'ifscCode', 'accountHolderName'],
 }
 
 const FILE_LIMITS = {
-  idProof: 5 * 1024 * 1024,
-  chefPhoto: 2 * 1024 * 1024,
-  kitchenPhoto: 5 * 1024 * 1024,
+  profilePhoto: 3 * 1024 * 1024,
+  idProofImage: 5 * 1024 * 1024,
 }
 
 const FILE_RULES = {
-  idProof: {
+  profilePhoto: {
     required: true,
     types: ['image/jpeg', 'image/png', 'image/jpg'],
-    label: 'ID Proof',
+    label: 'Profile Photo',
   },
-  chefPhoto: {
+  idProofImage: {
     required: true,
     types: ['image/jpeg', 'image/png', 'image/jpg'],
-    label: 'Chef Photo',
-  },
-  kitchenPhoto: {
-    required: true,
-    types: ['image/jpeg', 'image/png', 'image/jpg'],
-    label: 'Kitchen Photo',
+    label: 'ID Proof Image',
   },
 }
 
 const onlyLettersAndSpaces = /^[A-Za-z ]+$/
-const kitchenNamePattern = /^[A-Za-z0-9&,\- ]+$/
-const digitsOnly = /^\d+$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const textPattern = /^[A-Za-z ]+$/
+const digitsOnly = /^\d+$/
+const vehicleNumberPattern = /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/
+const drivingLicensePattern = /^[A-Z]{2}\d{2}\d{11}$/
 const ifscPattern = /^[A-Z]{4}0\d{6}$/
 const upiPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z]+$/
-const accountNumberPattern = /^\d+$/
 const aadhaarPattern = /^\d{12}$/
 const panPattern = /^[A-Z]{5}\d{4}[A-Z]$/
 
@@ -68,45 +61,41 @@ function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [form, setForm] = useState({
-    chefName: '',
-    kitchenName: '',
-    phone: '',
+    name: '',
+    mobileNo: '',
     email: '',
-    cuisine: '',
-    speciality: '',
-    experience: '',
-    maxOrders: '',
-    addressLine: '',
-    city: '',
-    state: '',
-    zip: '',
-    nearestStation: '',
-    prepTime: '',
-    openTime: '',
-    closeTime: '',
+    profilePhoto: null,
     idType: 'aadhaar',
     idNumber: '',
-    idProof: null,
-    chefPhoto: null,
-    kitchenPhoto: null,
-    upiOrAccount: '',
-    accountHolder: '',
-    bankName: '',
+    idProofImage: null,
+    vehicleType: '',
+    vehicleNumber: '',
+    drivingLicenseNumber: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    nearestStation: '',
+    startTime: '',
+    endTime: '',
+    upiId: '',
+    accountNumber: '',
     ifscCode: '',
+    accountHolderName: '',
   })
 
   useEffect(() => {
     let isMounted = true
 
-    const loadChefProfile = async () => {
-      const res = await chefCookieCheck()
-      if (!isMounted || !res?.chefUser) return
+    const loadDeliveryProfile = async () => {
+      const res = await deliveryCookieCheck()
+      if (!isMounted || !res?.deliveryBoy) return
 
-      if (res.chefUser.isRegistered) {
-        const reviewRes = await getChefReviewStatus()
+      if (res.deliveryBoy.isRegistered) {
+        const reviewRes = await getDeliveryReviewStatus()
         if (!isMounted) return
 
-        if (reviewRes?.hasRegistration && reviewRes?.reviewStatus !== 'rejected') {
+        if (reviewRes?.hasRegistration && reviewRes?.status !== 'rejected') {
           setShowAlreadyRegisteredPopup(true)
           return
         }
@@ -114,13 +103,12 @@ function Register() {
 
       setForm((prev) => ({
         ...prev,
-        chefName: prev.chefName || res.chefUser.name || '',
-        phone: prev.phone || res.chefUser.phone || '',
-        email: prev.email || res.chefUser.email || '',
+        name: prev.name || res.deliveryBoy.name || '',
+        mobileNo: prev.mobileNo || res.deliveryBoy.mobileNo || '',
       }))
     }
 
-    loadChefProfile()
+    loadDeliveryProfile()
 
     return () => {
       isMounted = false
@@ -143,7 +131,7 @@ function Register() {
     const rule = FILE_RULES[key]
     if (!file) return rule.required ? `${rule.label} is required.` : ''
     if (!rule.types.includes(file.type)) return `${rule.label}: upload in PNG, JPG or JPEG format only.`
-    if (file.size > FILE_LIMITS[key]) return `${rule.label} must be under ${key === 'chefPhoto' ? '2MB' : '5MB'}.`
+    if (file.size > FILE_LIMITS[key]) return `${rule.label} must be under ${key === 'profilePhoto' ? '3MB' : '5MB'}.`
     return ''
   }
 
@@ -151,43 +139,32 @@ function Register() {
     const trimmed = typeof value === 'string' ? value.trim() : value
 
     switch (field) {
-      case 'chefName':
-        if (!trimmed) return 'Chef Name is required.'
-        if (trimmed.length < 3) return 'Chef Name must be at least 3 characters.'
-        if (!onlyLettersAndSpaces.test(trimmed)) return 'Chef Name can contain only alphabets and spaces.'
+      case 'name':
+        if (!trimmed) return 'Name is required.'
+        if (trimmed.length < 3) return 'Name must be at least 3 characters.'
+        if (!onlyLettersAndSpaces.test(trimmed)) return 'Name can contain only alphabets and spaces.'
         return ''
-      case 'kitchenName':
-        if (!trimmed) return 'Kitchen Name is required.'
-        if (trimmed.length < 3) return 'Kitchen Name must be at least 3 characters.'
-        if (!kitchenNamePattern.test(trimmed)) return 'Kitchen Name allows letters, numbers, spaces, &, comma and hyphen only.'
-        return ''
-      case 'phone':
-        if (!trimmed) return 'Phone Number is required.'
-        if (!digitsOnly.test(trimmed)) return 'Phone Number can contain digits only.'
-        if (trimmed.length !== 10) return 'Phone Number must be exactly 10 digits.'
+      case 'mobileNo':
+        if (!trimmed) return 'Mobile Number is required.'
+        if (!digitsOnly.test(trimmed)) return 'Mobile Number can contain digits only.'
+        if (trimmed.length !== 10) return 'Mobile Number must be exactly 10 digits.'
         return ''
       case 'email':
         if (!trimmed) return 'Email is required.'
         if (!emailPattern.test(trimmed)) return 'Enter a valid email address.'
         return ''
-      case 'cuisine':
-        if (!trimmed) return 'Cuisine Type is required.'
+      case 'vehicleType':
+        if (!trimmed) return 'Vehicle Type is required.'
         return ''
-      case 'speciality':
-        if (!trimmed) return ''
-        if (!textPattern.test(trimmed)) return 'Speciality can contain text only.'
+      case 'vehicleNumber':
+        if (!trimmed) return 'Vehicle Number is required.'
+        if (!vehicleNumberPattern.test(trimmed.toUpperCase())) return 'Vehicle Number must be valid, like CG04AB1234.'
         return ''
-      case 'experience':
-        if (!trimmed) return 'Experience is required.'
-        if (!digitsOnly.test(trimmed)) return 'Experience must be numeric only.'
-        if (Number(trimmed) < 0 || Number(trimmed) > 40) return 'Experience must be between 0 and 40 years.'
+      case 'drivingLicenseNumber':
+        if (!trimmed) return 'Driving License Number is required.'
+        if (!drivingLicensePattern.test(trimmed.toUpperCase())) return 'Enter a valid Driving License Number.'
         return ''
-      case 'maxOrders':
-        if (!trimmed) return 'Max Orders per Day is required.'
-        if (!digitsOnly.test(trimmed)) return 'Max Orders per Day must be numeric only.'
-        if (Number(trimmed) < 1) return 'Max Orders per Day must be at least 1.'
-        return ''
-      case 'addressLine':
+      case 'address':
         if (!trimmed) return 'Address is required.'
         if (trimmed.length < 5) return 'Address must be at least 5 characters.'
         return ''
@@ -199,29 +176,24 @@ function Register() {
         if (!trimmed) return 'State is required.'
         if (!onlyLettersAndSpaces.test(trimmed)) return 'State can contain alphabets only.'
         return ''
-      case 'zip':
-        if (!trimmed) return 'Zip Code is required.'
-        if (!digitsOnly.test(trimmed)) return 'Zip Code can contain digits only.'
-        if (trimmed.length !== 6) return 'Zip Code must be exactly 6 digits.'
+      case 'pincode':
+        if (!trimmed) return 'Pincode is required.'
+        if (!digitsOnly.test(trimmed)) return 'Pincode can contain digits only.'
+        if (trimmed.length !== 6) return 'Pincode must be exactly 6 digits.'
         return ''
       case 'nearestStation':
-        if (!trimmed) return 'Nearest Railway Station is required.'
-        if (trimmed.length < 3) return 'Nearest Railway Station must be at least 3 characters.'
-        return ''
-      case 'prepTime':
-        if (!trimmed) return 'Preparation Time is required.'
-        if (!digitsOnly.test(trimmed)) return 'Preparation Time must be numeric only.'
-        if (Number(trimmed) < 5 || Number(trimmed) > 180) return 'Preparation Time must be between 5 and 180 minutes.'
+        if (!trimmed) return 'Nearest Station is required.'
+        if (trimmed.length < 3) return 'Nearest Station must be at least 3 characters.'
         return ''
       case 'availableDays':
         if (selectedDays.length < 1) return 'Select at least one available day.'
         return ''
-      case 'openTime':
-        if (!form.openTime) return 'Opening Time is required.'
+      case 'startTime':
+        if (!form.startTime) return 'Start Time is required.'
         return ''
-      case 'closeTime':
-        if (!form.closeTime) return 'Closing Time is required.'
-        if (form.openTime && form.closeTime <= form.openTime) return 'Closing Time must be greater than Opening Time.'
+      case 'endTime':
+        if (!form.endTime) return 'End Time is required.'
+        if (form.startTime && form.endTime <= form.startTime) return 'End Time must be greater than Start Time.'
         return ''
       case 'idType':
         if (!trimmed) return 'Select an ID type.'
@@ -235,25 +207,24 @@ function Register() {
         }
         if (!aadhaarPattern.test(trimmed)) return 'Aadhaar number must be exactly 12 digits.'
         return ''
-      case 'idProof':
-      case 'chefPhoto':
-      case 'kitchenPhoto':
+      case 'profilePhoto':
+      case 'idProofImage':
         return validateFile(field, form[field])
-      case 'upiOrAccount':
-        if (!trimmed) return 'UPI ID / Account Number is required.'
-        if (!upiPattern.test(trimmed) && !accountNumberPattern.test(trimmed)) return 'Enter a valid UPI ID or numeric account number.'
+      case 'upiId':
+        if (!trimmed) return ''
+        if (!upiPattern.test(trimmed)) return 'Enter a valid UPI ID.'
         return ''
-      case 'accountHolder':
-        if (!trimmed) return 'Account Holder Name is required.'
-        if (!onlyLettersAndSpaces.test(trimmed)) return 'Account Holder Name can contain alphabets only.'
-        return ''
-      case 'bankName':
-        if (!trimmed) return 'Bank Name is required.'
-        if (!onlyLettersAndSpaces.test(trimmed)) return 'Bank Name can contain alphabets only.'
+      case 'accountNumber':
+        if (!trimmed) return 'Account Number is required.'
+        if (!digitsOnly.test(trimmed)) return 'Account Number can contain digits only.'
         return ''
       case 'ifscCode':
         if (!trimmed) return 'IFSC Code is required.'
         if (!ifscPattern.test(trimmed.toUpperCase())) return 'IFSC must follow format: 4 letters + 0 + 6 digits.'
+        return ''
+      case 'accountHolderName':
+        if (!trimmed) return 'Account Holder Name is required.'
+        if (!onlyLettersAndSpaces.test(trimmed)) return 'Account Holder Name can contain alphabets only.'
         return ''
       default:
         return ''
@@ -283,9 +254,9 @@ function Register() {
     }
 
     let nextValue = value
-    if (['phone', 'zip', 'experience', 'maxOrders', 'prepTime'].includes(key)) nextValue = value.replace(/\D/g, '')
+    if (['mobileNo', 'pincode', 'accountNumber'].includes(key)) nextValue = value.replace(/\D/g, '')
     if (key === 'idNumber' && form.idType === 'aadhaar') nextValue = value.replace(/\D/g, '')
-    if (key === 'ifscCode') nextValue = value.toUpperCase()
+    if (['ifscCode', 'drivingLicenseNumber', 'vehicleNumber'].includes(key)) nextValue = value.toUpperCase()
     if (key === 'idNumber' && form.idType === 'pan') nextValue = value.toUpperCase()
 
     setForm((prev) => ({ ...prev, [key]: nextValue }))
@@ -314,72 +285,70 @@ function Register() {
       setIsSubmitting(true)
 
       const payload = new FormData()
-      payload.append('name', form.chefName.trim())
+      payload.append('name', form.name.trim())
+      payload.append('mobileNo', form.mobileNo.trim())
       payload.append('email', form.email.trim())
-      payload.append('phone', form.phone.trim())
-      payload.append('kitchenName', form.kitchenName.trim())
-      payload.append('cuisine', form.cuisine.trim())
-      payload.append('speciality', form.speciality.trim())
-      payload.append('experience', form.experience.trim())
-      payload.append('maxOrders', form.maxOrders.trim())
-      payload.append('addressLine', form.addressLine.trim())
+      payload.append('vehicleType', form.vehicleType.trim())
+      payload.append('vehicleNumber', form.vehicleNumber.trim())
+      payload.append('drivingLicenseNumber', form.drivingLicenseNumber.trim())
+      payload.append('address', form.address.trim())
       payload.append('city', form.city.trim())
       payload.append('state', form.state.trim())
-      payload.append('zip', form.zip.trim())
+      payload.append('pincode', form.pincode.trim())
       payload.append('nearestStation', form.nearestStation.trim())
-      payload.append('prepTime', form.prepTime.trim())
-      payload.append('openTime', form.openTime)
-      payload.append('closeTime', form.closeTime)
       payload.append('availableDays', JSON.stringify(selectedDays))
+      payload.append('startTime', form.startTime)
+      payload.append('endTime', form.endTime)
       payload.append('idType', form.idType)
       payload.append('idNumber', form.idNumber.trim())
-      payload.append('upiOrAccount', form.upiOrAccount.trim())
-      payload.append('accountHolder', form.accountHolder.trim())
-      payload.append('bankName', form.bankName.trim())
+      payload.append('upiId', form.upiId.trim())
+      payload.append('accountNumber', form.accountNumber.trim())
       payload.append('ifscCode', form.ifscCode.trim())
-      payload.append('idProof', form.idProof)
-      payload.append('chefPhoto', form.chefPhoto)
-      payload.append('kitchenPhoto', form.kitchenPhoto)
+      payload.append('accountHolderName', form.accountHolderName.trim())
+      payload.append('profilePhoto', form.profilePhoto)
+      payload.append('idProofImage', form.idProofImage)
 
-      const registerRes = await submitChefRegistration(payload)
+      const registerRes = await submitDeliveryRegistration(payload)
 
-      if (registerRes?.message === 'Chef registered successfully') {
+      if (registerRes?.message === 'Delivery registered successfully') {
         setShowSuccessPopup(true)
         return
       }
 
-      if (registerRes?.message === 'Chef registration resubmitted successfully') {
+      if (registerRes?.message === 'Delivery registration resubmitted successfully') {
         setShowResubmittedPopup(true)
         return
       }
 
-      if (registerRes?.message === 'Chef registration already exists') {
+      if (registerRes?.message === 'Delivery registration already exists') {
         setShowAlreadySubmittedPopup(true)
         return
       }
 
-      alert(registerRes?.message || 'Unable to submit chef registration')
+      alert(registerRes?.message || 'Unable to submit delivery registration')
     } catch (err) {
-      alert(err.message || 'Unable to submit chef registration')
+      alert(err.message || 'Unable to submit delivery registration')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const inputCls = 'h-11 rounded-xl border border-[#d1d5db] px-3 text-sm text-[#111827] outline-none transition focus:border-[#f97316] focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]'
+  const inputCls =
+    'h-11 rounded-xl border border-[#d1d5db] px-3 text-sm text-[#111827] outline-none transition focus:border-[#f97316] focus:ring-4 focus:ring-[rgba(249,115,22,0.18)]'
   const labelCls = 'flex flex-col gap-2 text-sm font-semibold text-[#1f2937]'
-  const fileInputCls = 'w-full rounded-xl border border-[#d1d5db] px-3 py-1.5 text-xs font-medium text-[#6b7280] transition file:mr-2 file:rounded-full file:border-0 file:bg-[var(--theme-accent-soft)] file:px-3 file:py-1.5 file:text-[10px] file:font-semibold file:text-[var(--theme-accent)] hover:file:bg-[#fff1e2] focus:border-[#f97316] focus:outline-none'
+  const fileInputCls =
+    'w-full rounded-xl border border-[#d1d5db] px-3 py-1.5 text-xs font-medium text-[#6b7280] transition file:mr-2 file:rounded-full file:border-0 file:bg-[var(--theme-accent-soft)] file:px-3 file:py-1.5 file:text-[10px] file:font-semibold file:text-[var(--theme-accent)] hover:file:bg-[#fff1e2] focus:border-[#f97316] focus:outline-none'
   const sectionDividerCls = 'border-b border-[#f3f4f6] pb-1 text-xs font-semibold uppercase tracking-wide text-[#9ca3af]'
   const errorCls = 'text-xs font-medium text-red-500'
-  const steps = ['Kitchen Profile', 'Location', 'Availability']
+  const steps = ['Partner Profile', 'Location', 'Verification']
 
   return (
     <div className="min-h-screen bg-[var(--theme-app-bg)] px-4 py-8">
       <div className="mx-auto w-full max-w-3xl rounded-3xl bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] ring-1 ring-black/5 sm:p-8">
         <div className="mb-8 flex flex-col gap-2 text-center">
-          <p className="text-sm font-semibold text-[#f97316]">Chef Registration</p>
-          <h1 className="text-2xl font-bold text-[#0f172a]">Register your kitchen</h1>
-          <p className="text-sm text-[#64748b]">Fill in your details so customers can find you.</p>
+          <p className="text-sm font-semibold text-[#f97316]">Delivery Registration</p>
+          <h1 className="text-2xl font-bold text-[#0f172a]">Register as delivery partner</h1>
+          <p className="text-sm text-[#64748b]">Fill in your details so delivery assignments can find you.</p>
         </div>
 
         {page <= 3 && (
@@ -406,20 +375,16 @@ function Register() {
         {page === 1 && (
           <div className="grid gap-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Chef Name <input className={inputCls} value={form.chefName} onChange={update('chefName')} placeholder="Enter your name" /> {errors.chefName && <span className={errorCls}>{errors.chefName}</span>}</label>
-              <label className={labelCls}>Kitchen / Mess Name <input className={inputCls} value={form.kitchenName} onChange={update('kitchenName')} placeholder="Enter kitchen name" /> {errors.kitchenName && <span className={errorCls}>{errors.kitchenName}</span>}</label>
+              <label className={labelCls}>Full Name <input className={inputCls} value={form.name} onChange={update('name')} placeholder="Enter your name" /> {errors.name && <span className={errorCls}>{errors.name}</span>}</label>
+              <label className={labelCls}>Mobile Number <input className={inputCls} type="tel" value={form.mobileNo} onChange={update('mobileNo')} placeholder="Enter mobile number" maxLength={10} /> {errors.mobileNo && <span className={errorCls}>{errors.mobileNo}</span>}</label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Phone Number <input className={inputCls} type="tel" value={form.phone} onChange={update('phone')} placeholder="Enter phone number" maxLength={10} /> {errors.phone && <span className={errorCls}>{errors.phone}</span>}</label>
               <label className={labelCls}>Email <input className={inputCls} type="email" value={form.email} onChange={update('email')} placeholder="Enter email" /> {errors.email && <span className={errorCls}>{errors.email}</span>}</label>
+              <label className={labelCls}>Vehicle Type <input className={inputCls} value={form.vehicleType} onChange={update('vehicleType')} placeholder="e.g., Bike, Scooter" /> {errors.vehicleType && <span className={errorCls}>{errors.vehicleType}</span>}</label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Cuisine Type <input className={inputCls} value={form.cuisine} onChange={update('cuisine')} placeholder="e.g., North Indian, South Indian" /> {errors.cuisine && <span className={errorCls}>{errors.cuisine}</span>}</label>
-              <label className={labelCls}>Speciality <input className={inputCls} value={form.speciality} onChange={update('speciality')} placeholder="e.g., Biryani, Thali" /> {errors.speciality && <span className={errorCls}>{errors.speciality}</span>}</label>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Years of Experience <input className={inputCls} type="text" value={form.experience} onChange={update('experience')} placeholder="e.g., 5" /> {errors.experience && <span className={errorCls}>{errors.experience}</span>}</label>
-              <label className={labelCls}>Max Orders per Day <input className={inputCls} type="text" value={form.maxOrders} onChange={update('maxOrders')} placeholder="e.g., 20" /> {errors.maxOrders && <span className={errorCls}>{errors.maxOrders}</span>}</label>
+              <label className={labelCls}>Vehicle Number <input className={`${inputCls} uppercase`} value={form.vehicleNumber} onChange={update('vehicleNumber')} placeholder="e.g., CG04AB1234" /> {errors.vehicleNumber && <span className={errorCls}>{errors.vehicleNumber}</span>}</label>
+              <label className={labelCls}>Driving License Number <input className={`${inputCls} uppercase`} value={form.drivingLicenseNumber} onChange={update('drivingLicenseNumber')} placeholder="Enter DL number" /> {errors.drivingLicenseNumber && <span className={errorCls}>{errors.drivingLicenseNumber}</span>}</label>
             </div>
             <button type="button" onClick={() => handleNext(2)} className="mt-2 w-full rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(249,115,22,0.28)]">Continue →</button>
           </div>
@@ -427,21 +392,23 @@ function Register() {
 
         {page === 2 && (
           <div className="grid gap-5">
-            <label className={labelCls}>Street Address <input className={inputCls} value={form.addressLine} onChange={update('addressLine')} placeholder="Street address" /> {errors.addressLine && <span className={errorCls}>{errors.addressLine}</span>}</label>
+            <label className={labelCls}>Street Address <input className={inputCls} value={form.address} onChange={update('address')} placeholder="Street address" /> {errors.address && <span className={errorCls}>{errors.address}</span>}</label>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className={labelCls}>City <input className={inputCls} value={form.city} onChange={update('city')} placeholder="City" /> {errors.city && <span className={errorCls}>{errors.city}</span>}</label>
               <label className={labelCls}>State <input className={inputCls} value={form.state} onChange={update('state')} placeholder="State" /> {errors.state && <span className={errorCls}>{errors.state}</span>}</label>
-              <label className={labelCls}>Zip Code <input className={inputCls} value={form.zip} onChange={update('zip')} placeholder="Zip" maxLength={6} /> {errors.zip && <span className={errorCls}>{errors.zip}</span>}</label>
+              <label className={labelCls}>Pincode <input className={inputCls} value={form.pincode} onChange={update('pincode')} placeholder="Pincode" maxLength={6} /> {errors.pincode && <span className={errorCls}>{errors.pincode}</span>}</label>
             </div>
             <label className={labelCls}>Nearest Railway Station <input className={inputCls} value={form.nearestStation} onChange={update('nearestStation')} placeholder="e.g., Raipur Junction" /> {errors.nearestStation && <span className={errorCls}>{errors.nearestStation}</span>}</label>
-            <label className={labelCls}>Preparation Time (mins) <input className={inputCls} type="text" value={form.prepTime} onChange={update('prepTime')} placeholder="e.g., 30" /> {errors.prepTime && <span className={errorCls}>{errors.prepTime}</span>}</label>
-            <div className="h-px bg-[#f3f4f6]" />
             <div>
               <p className="mb-2 text-sm font-semibold text-[#374151]">Available Days</p>
               <div className="flex flex-wrap gap-2">
                 {DAYS.map((day) => (
-                  <button key={day} type="button" onClick={() => toggleDay(day)}
-                    className={`rounded-full border-2 px-4 py-1.5 text-xs font-semibold transition-all ${selectedDays.includes(day) ? 'border-[#f97316] bg-[#fff3e8] text-[#f97316]' : 'border-[#d1d5db] text-[#64748b]'}`}>
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`rounded-full border-2 px-4 py-1.5 text-xs font-semibold transition-all ${selectedDays.includes(day) ? 'border-[#f97316] bg-[#fff3e8] text-[#f97316]' : 'border-[#d1d5db] text-[#64748b]'}`}
+                  >
                     {day}
                   </button>
                 ))}
@@ -449,8 +416,8 @@ function Register() {
               {errors.availableDays && <span className={`${errorCls} mt-2 block`}>{errors.availableDays}</span>}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Opening Time <input className={inputCls} type="time" value={form.openTime} onChange={update('openTime')} /> {errors.openTime && <span className={errorCls}>{errors.openTime}</span>}</label>
-              <label className={labelCls}>Closing Time <input className={inputCls} type="time" value={form.closeTime} onChange={update('closeTime')} /> {errors.closeTime && <span className={errorCls}>{errors.closeTime}</span>}</label>
+              <label className={labelCls}>Start Time <input className={inputCls} type="time" value={form.startTime} onChange={update('startTime')} /> {errors.startTime && <span className={errorCls}>{errors.startTime}</span>}</label>
+              <label className={labelCls}>End Time <input className={inputCls} type="time" value={form.endTime} onChange={update('endTime')} /> {errors.endTime && <span className={errorCls}>{errors.endTime}</span>}</label>
             </div>
             <div className="mt-2 flex gap-3">
               <button type="button" onClick={() => setPage(1)} className="flex-1 rounded-2xl border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-semibold text-[#374151]">← Back</button>
@@ -462,6 +429,13 @@ function Register() {
         {page === 3 && (
           <div className="grid gap-5">
             <p className={sectionDividerCls}>Verification Documents</p>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-semibold text-[#1f2937]">Profile Photo</span>
+              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('profilePhoto')} />
+              <span className="text-[11px] font-medium text-[#dc2626]">Upload PNG, JPG or JPEG only. Max 3MB.</span>
+              {errors.profilePhoto && <span className={errorCls}>{errors.profilePhoto}</span>}
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
@@ -492,18 +466,8 @@ function Register() {
                         }}
                         className="sr-only"
                       />
-                      <span
-                        className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${
-                          form.idType === option.value
-                            ? 'border-[#f97316] bg-white'
-                            : 'border-[#cbd5e1] bg-white'
-                        }`}
-                      >
-                        <span
-                          className={`h-2 w-2 rounded-full transition ${
-                            form.idType === option.value ? 'bg-[#f97316]' : 'bg-transparent'
-                          }`}
-                        />
+                      <span className={`flex h-4 w-4 items-center justify-center rounded-full border transition ${form.idType === option.value ? 'border-[#f97316] bg-white' : 'border-[#cbd5e1] bg-white'}`}>
+                        <span className={`h-2 w-2 rounded-full transition ${form.idType === option.value ? 'bg-[#f97316]' : 'bg-transparent'}`} />
                       </span>
                       {option.label}
                     </label>
@@ -526,35 +490,21 @@ function Register() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[#1f2937]">ID Proof</span>
-              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('idProof')} />
+              <span className="text-sm font-semibold text-[#1f2937]">ID Proof Image</span>
+              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('idProofImage')} />
               <span className="text-[11px] font-medium text-[#dc2626]">Upload PNG, JPG or JPEG only. Max 5MB.</span>
-              {errors.idProof && <span className={errorCls}>{errors.idProof}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[#1f2937]">Chef Photo</span>
-              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('chefPhoto')} />
-              <span className="text-[11px] font-medium text-[#dc2626]">Upload PNG, JPG or JPEG only. Max 2MB.</span>
-              {errors.chefPhoto && <span className={errorCls}>{errors.chefPhoto}</span>}
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold text-[#1f2937]">Kitchen Photo</span>
-              <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('kitchenPhoto')} />
-              <span className="text-[11px] font-medium text-[#dc2626]">Upload a clean kitchen photo in PNG, JPG or JPEG format. Max 5MB.</span>
-              {errors.kitchenPhoto && <span className={errorCls}>{errors.kitchenPhoto}</span>}
+              {errors.idProofImage && <span className={errorCls}>{errors.idProofImage}</span>}
             </div>
 
             <p className={sectionDividerCls}>Payment Details</p>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Bank Account / UPI ID <input className={inputCls} value={form.upiOrAccount} onChange={update('upiOrAccount')} placeholder="UPI or Account number" /> {errors.upiOrAccount && <span className={errorCls}>{errors.upiOrAccount}</span>}</label>
-              <label className={labelCls}>Account Holder Name <input className={inputCls} value={form.accountHolder} onChange={update('accountHolder')} placeholder="As per bank records" /> {errors.accountHolder && <span className={errorCls}>{errors.accountHolder}</span>}</label>
+              <label className={labelCls}>UPI ID <input className={inputCls} value={form.upiId} onChange={update('upiId')} placeholder="Optional UPI ID" /> {errors.upiId && <span className={errorCls}>{errors.upiId}</span>}</label>
+              <label className={labelCls}>Account Number <input className={inputCls} value={form.accountNumber} onChange={update('accountNumber')} placeholder="Enter account number" /> {errors.accountNumber && <span className={errorCls}>{errors.accountNumber}</span>}</label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Bank Name <input className={inputCls} value={form.bankName} onChange={update('bankName')} placeholder="e.g., SBI, HDFC, Kotak" /> {errors.bankName && <span className={errorCls}>{errors.bankName}</span>}</label>
               <label className={labelCls}>IFSC Code <input className={`${inputCls} uppercase`} value={form.ifscCode} onChange={update('ifscCode')} placeholder="e.g., SBIN0001234" /> {errors.ifscCode && <span className={errorCls}>{errors.ifscCode}</span>}</label>
+              <label className={labelCls}>Account Holder Name <input className={inputCls} value={form.accountHolderName} onChange={update('accountHolderName')} placeholder="As per bank records" /> {errors.accountHolderName && <span className={errorCls}>{errors.accountHolderName}</span>}</label>
             </div>
 
             <div className="mt-2 flex gap-3">
@@ -565,49 +515,49 @@ function Register() {
         )}
       </div>
 
-      <Popuplogin
+      <DeliveryPopuplogin
         isOpen={showSuccessPopup}
         mode="success"
-        name={form.chefName || form.kitchenName}
-        successRedirectTo="/chef/dashboard"
+        name={form.name}
+        successRedirectTo="/delivery/dashboard"
         onClose={() => setShowSuccessPopup(false)}
       />
 
-      <Popuplogin
+      <DeliveryPopuplogin
         isOpen={showResubmittedPopup}
         mode="resubmitted-success"
-        name={form.chefName || form.kitchenName}
-        successRedirectTo="/chef/dashboard"
+        name={form.name}
+        successRedirectTo="/delivery/dashboard"
         onClose={() => setShowResubmittedPopup(false)}
       />
 
-      <Popuplogin
+      <DeliveryPopuplogin
         isOpen={showAlreadyRegisteredPopup}
         mode="already-registered"
-        name={form.chefName || 'Chef'}
-        successRedirectTo="/chef/dashboard"
+        name={form.name || 'Partner'}
+        successRedirectTo="/delivery/dashboard"
         onClose={() => {
           setShowAlreadyRegisteredPopup(false)
-          navigate('/chef/dashboard', {
+          navigate('/delivery/dashboard', {
             state: {
-              hideChefPopup: true,
-              chefRegistered: true,
+              hideDeliveryPopup: true,
+              deliveryRegistered: true,
             },
           })
         }}
       />
 
-      <Popuplogin
+      <DeliveryPopuplogin
         isOpen={showAlreadySubmittedPopup}
         mode="already-submitted"
-        name={form.chefName || 'Chef'}
-        successRedirectTo="/chef/dashboard"
+        name={form.name || 'Partner'}
+        successRedirectTo="/delivery/dashboard"
         onClose={() => {
           setShowAlreadySubmittedPopup(false)
-          navigate('/chef/dashboard', {
+          navigate('/delivery/dashboard', {
             state: {
-              hideChefPopup: true,
-              chefRegistered: true,
+              hideDeliveryPopup: true,
+              deliveryRegistered: true,
             },
           })
         }}

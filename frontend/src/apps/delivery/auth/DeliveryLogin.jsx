@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Bike } from 'lucide-react'
 import logo from '../../../assets/logo.png'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import LoginStatusPopup from '../../../components/LoginStatusPopup'
 import { deliveryCookieCheck, deliveryLogin } from '../../../../services/deliveryAuthService'
 
 function DeliveryLogin() {
   const navigate = useNavigate()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showAlreadyLoggedPopup, setShowAlreadyLoggedPopup] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -53,6 +55,12 @@ function DeliveryLogin() {
         return
       }
 
+      if (res?.message === 'This mobile number is already logged in on another device') {
+        setShowAlreadyLoggedPopup(true)
+        setIsSubmitting(false)
+        return
+      }
+
       alert(res?.message || 'Invalid Login')
       setIsSubmitting(false)
     } catch {
@@ -68,6 +76,15 @@ function DeliveryLogin() {
   return (
     <div className="theme-page-shell min-h-screen px-4 py-7 flex items-center justify-center">
       {isSubmitting && <LoadingSpinner label="Signing you in..." />}
+      <LoginStatusPopup
+        isOpen={showAlreadyLoggedPopup}
+        name={form.name}
+        roleLabel="Delivery Partner"
+        title="Already logged in somewhere else"
+        message="This mobile number is already active on another device. Logout from that device first, then try again."
+        onClose={() => setShowAlreadyLoggedPopup(false)}
+        onContinue={() => setShowAlreadyLoggedPopup(false)}
+      />
       <form
         className="theme-card w-full max-w-105 rounded-[18px] px-6 pb-6 pt-7 flex flex-col gap-5"
         onSubmit={handleContinue}

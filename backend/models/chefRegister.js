@@ -68,7 +68,20 @@ const RegisterSchema = mongoose.Schema({
         type: String,
         required: true,
     },
+    idType: {
+        type: String,
+        enum: ['aadhaar', 'pan'],
+        required: true,
+    },
+    idNumber: {
+        type: String,
+        required: true,
+    },
     chefPhoto: {
+        type: String,
+        required: true,
+    },
+    kitchenPhoto: {
         type: String,
         required: true,
     },
