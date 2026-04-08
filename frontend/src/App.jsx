@@ -13,11 +13,11 @@ import MainPage from './apps/MainPage'
 import { chefCookieCheck } from '../services/chefAuthService'
 import DeliveryLogin from './apps/delivery/auth/DeliveryLogin'
 import DeliveryDashboard from './apps/delivery/deliveryDashboard'
+import DeliveryRegister from './apps/delivery/auth/Register'
 import { deliveryCookieCheck } from '../services/deliveryAuthService'
 import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
 import { adminCookieCheck } from '../services/adminAuthService'
-import Chefff from './apps/admin/Chefff'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -102,6 +102,19 @@ function App() {
       <Route path="/delivery" element={<Navigate to="/delivery/login" replace />} />
       <Route path="/delivery/login" element={<DeliveryLogin />} />
       <Route
+        path="/delivery/register"
+        element={
+          <ProtectedRoute
+            authCheck={deliveryCookieCheck}
+            isAuthorized={isDeliveryAuthorized}
+            redirectTo="/delivery/login"
+            loadingLabel="Loading..."
+          >
+            <DeliveryRegister />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/delivery/dashboard"
         element={
           <ProtectedRoute
@@ -127,19 +140,6 @@ function App() {
             loadingLabel="Loading ..."
           >
             <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/dashboard2"
-        element={
-          <ProtectedRoute
-            authCheck={adminCookieCheck}
-            isAuthorized={isAdminAuthorized}
-            redirectTo="/admin/login"
-            loadingLabel="Loading ..."
-          >
-            <Chefff />
           </ProtectedRoute>
         }
       />

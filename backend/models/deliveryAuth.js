@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const deliveryAuthSchema = new mongoose.Schema({
-    name: {
+  name: {
     type: String,
     required: true,
   },
@@ -9,10 +9,22 @@ const deliveryAuthSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-    isRegistered: {
-        default: false,
-        type: Boolean,
-    }
+  isRegistered: {
+    default: false,
+    type: Boolean,
+  },
+  activeSessionId: {
+    type: String,
+    default: '',
+  },
+  activeSessionExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  lastLoginAt: {
+    type: Date,
+    default: null,
+  },
 })
 
 module.exports = mongoose.model('deliveryAuth', deliveryAuthSchema)

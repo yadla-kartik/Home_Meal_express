@@ -18,3 +18,23 @@ export const deliveryCookieCheck = async () => {
     return null
   }
 }
+
+export const getDeliveryReviewStatus = async () => {
+  try {
+    const res = await api.get('/delivery/review-status')
+    return res.data
+  } catch (err) {
+    console.log('Error occured in deliveryAuthService', err.message)
+    return null
+  }
+}
+
+export const submitDeliveryRegistration = async (data) => {
+  try {
+    const res = await api.post('/delivery/register', data)
+    return res.data
+  } catch (err) {
+    console.log('Error occured in deliveryAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}

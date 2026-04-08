@@ -2,10 +2,11 @@ import { io } from 'socket.io-client'
 
 let adminSocket = null
 let chefSocket = null
+const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 
 export const getAdminSocket = () => {
   if (!adminSocket) {
-    adminSocket = io('http://localhost:5000', {
+    adminSocket = io(socketUrl, {
       withCredentials: true,
       autoConnect: false,
     })
@@ -16,7 +17,7 @@ export const getAdminSocket = () => {
 
 export const getChefSocket = () => {
   if (!chefSocket) {
-    chefSocket = io('http://localhost:5000', {
+    chefSocket = io(socketUrl, {
       withCredentials: true,
       autoConnect: false,
     })

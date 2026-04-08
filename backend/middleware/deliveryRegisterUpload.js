@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const multer = require('multer')
 
-const uploadDirectory = path.join(__dirname, '..', 'uploads', 'chef-register')
+const uploadDirectory = path.join(__dirname, '..', 'uploads', 'delivery-register')
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -32,12 +32,11 @@ const upload = multer({
     cb(null, true)
   },
 }).fields([
-  { name: 'idProof', maxCount: 1 },
-  { name: 'chefPhoto', maxCount: 1 },
-  { name: 'kitchenPhoto', maxCount: 1 },
+  { name: 'profilePhoto', maxCount: 1 },
+  { name: 'idProofImage', maxCount: 1 },
 ])
 
-function uploadChefRegister(req, res, next) {
+function uploadDeliveryRegister(req, res, next) {
   upload(req, res, (err) => {
     if (!err) {
       next()
@@ -55,5 +54,5 @@ function uploadChefRegister(req, res, next) {
 }
 
 module.exports = {
-  uploadChefRegister,
+  uploadDeliveryRegister,
 }
