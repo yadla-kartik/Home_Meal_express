@@ -18,6 +18,7 @@ import { deliveryCookieCheck } from '../services/deliveryAuthService'
 import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
 import { adminCookieCheck } from '../services/adminAuthService'
+import SuperAdminDashboard from './apps/superAdmin/SuperAdminDashboard'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -42,19 +43,14 @@ function App() {
 
   return (
     <Routes>
-      <Route 
-        path='/' 
-        element={
-            <MainPage />
-        }
-      />
+      <Route path='/' element={<MainPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/otp" element={<Otp />} />
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <UserDashboard/>
+            <UserDashboard />
           </ProtectedRoute>
         }
       />
@@ -62,16 +58,19 @@ function App() {
       <Route path="/chef" element={<Navigate to="/chef/login" replace />} />
       <Route path="/chef/login" element={<ChefLogin />} />
       <Route path="/chef/otp" element={<Otp />} />
-      <Route path="/chef/dashboard" element={
-        <ProtectedRoute
-          authCheck={chefCookieCheck}
-          isAuthorized={isChefAuthorized}
-          redirectTo="/chef/login"
-          loadingLabel="Loading ..."
-        >
-          <ChefDashboard />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/chef/dashboard"
+        element={
+          <ProtectedRoute
+            authCheck={chefCookieCheck}
+            isAuthorized={isChefAuthorized}
+            redirectTo="/chef/login"
+            loadingLabel="Loading ..."
+          >
+            <ChefDashboard />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/chef/register"
         element={
@@ -143,6 +142,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/superadmin" element={<SuperAdminDashboard />} />
     </Routes>
   )
 }
