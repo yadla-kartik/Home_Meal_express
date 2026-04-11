@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-const bcrypt = require('bcrypt')
 
 const AdminSchema = mongoose.Schema({
     name: {
@@ -15,23 +14,20 @@ const AdminSchema = mongoose.Schema({
         type: String,
         required: true,
     },
+    adminCode: {
+        type: String,
+        unique: true,
+        required: true,
+    },
     password: {
         type: String,
         required: true,
     },
 })
 
-
-AdminSchema.pre('save', async function () {
-    if (!this.isModified('password')) return
-
-    const salt = await bcrypt.genSalt(10)
-    this.password = await bcrypt.hash(this.password, salt)
-})
-
-//  Compare password without decryption 
+// Compare password directly (user requested no decryption/encryption)
 AdminSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+    return this.password === enteredPassword;
 }
 
 module.exports = mongoose.model('adminAuth', AdminSchema)

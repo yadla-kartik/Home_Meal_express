@@ -22,12 +22,12 @@ const signIn = async (req, res) => {
       name: findAdmin.name,
       email: findAdmin.email,
       phone: findAdmin.phone,
-    })
+    }, '7d')
 
     res.cookie('adminToken', token, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 1 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     })
 
     return res.status(200).json({
@@ -43,18 +43,19 @@ const signIn = async (req, res) => {
 
 const signUp = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body
+    const { name, email, phone, adminCode, password } = req.body
 
-    const existingAdmin = await adminAuth.findOne({ email })
+    const existingAdmin = await adminAuth.findOne({ $or: [{ email }, { adminCode }] })
 
     if (existingAdmin) {
-      return res.status(409).json({ message: 'Admin already exists' })
+      return res.status(409).json({ message: 'Admin with this Email or Admin Code already exists' })
     }
 
     const createAdmin = await adminAuth.create({
       name,
       email,
       phone,
+      adminCode,
       password,
     })
 
@@ -63,12 +64,12 @@ const signUp = async (req, res) => {
       name: createAdmin.name,
       email: createAdmin.email,
       phone: createAdmin.phone,
-    })
+    }, '7d')
 
     res.cookie('adminToken', token, {
       httpOnly: true,
       sameSite: 'lax',
-      maxAge: 1 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     })
 
     return res.status(201).json({

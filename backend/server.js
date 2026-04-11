@@ -15,6 +15,7 @@ const chefAuthRoutes = require('./routes/chefAuthRoutes')
 const deliveryRoutes = require('./routes/deliveryRoutes')
 const adminRoutes = require('./routes/adminRoutes')
 const irctcRoutes = require('./routes/irctcRoutes')
+const superAdminRoutes = require('./routes/superAdminRoutes')
 
 // Instance of Express
 const app = express()
@@ -46,6 +47,9 @@ app.use('/api/admin', adminRoutes)
 
 // IRCTC
 app.use('/api/irctc', irctcRoutes)
+
+// Superadmin
+app.use('/api/superadmin', superAdminRoutes)
 
 // Connection of DB and Port Listening
 connectDB()

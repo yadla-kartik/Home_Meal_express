@@ -308,3 +308,23 @@ export const userCookieCheck = async () => {
     return null
   }
 }
+
+export const userLogout = async () => {
+  try {
+    const res = await api.post('/login/logout')
+    return res.data
+  } catch (err) {
+    console.error('Logout error:', err)
+    return { success: false, message: 'Unable to logout' }
+  }
+}
+
+export const checkPnrDetails = async (pnr) => {
+  try {
+    const res = await api.post('/login/pnr/check', { pnr })
+    return res.data
+  } catch (err) {
+    console.error('Error fetching PNR details:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching PNR details' }
+  }
+}

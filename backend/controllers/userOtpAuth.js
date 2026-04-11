@@ -266,4 +266,43 @@ module.exports = {
       })
     }
   },
+  checkPnr: async (req, res) => {
+    try {
+      const pnr = String(req.body?.pnr || '').trim()
+
+      if (!pnr || pnr.length !== 10 || !/^\d+$/.test(pnr)) {
+        return res.status(400).json({ success: false, message: 'Please enter a valid 10-digit PNR number.' })
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 800)) // simulate network delay
+
+      if (pnr !== '1234567890') {
+        return res.status(400).json({ success: false, message: 'Invalid PNR.' })
+      }
+
+      const dummyPnrData = {
+        trainNumber: "12952",
+        trainName: "Mumbai Rajdhani",
+        boardingStation: "New Delhi (NDLS)",
+        destinationStation: "Mumbai Central (MMCT)",
+        dateOfJourney: "2026-04-15",
+        passengers: [
+          { bookingStatus: "CNF", currentStatus: "CNF", coach: "B2", berth: "42", berthType: "UB" },
+          { bookingStatus: "CNF", currentStatus: "CNF", coach: "B2", berth: "43", berthType: "LB" }
+        ]
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'PNR details fetched successfully.',
+        data: dummyPnrData
+      })
+    } catch (err) {
+      console.error('[DEBUG Backend] Exception during checkPnr:', err.message)
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error while fetching PNR details.'
+      })
+    }
+  }
 }

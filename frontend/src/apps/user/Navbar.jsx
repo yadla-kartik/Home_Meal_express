@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
-import { userCookieCheck } from '../../../services/userAuthService'
+import { userCookieCheck, userLogout } from '../../../services/userAuthService'
 
 function Navbar() {
+  const navigate = useNavigate()
   const [scrollProgress, setScrollProgress] = React.useState(0)
   const [authStatus, setAuthStatus] = React.useState('loading')
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false)
@@ -64,6 +65,14 @@ function Navbar() {
       document.removeEventListener('keydown', handleEscape)
     }
   }, [])
+
+  const handleLogout = async () => {
+    await userLogout()
+    setAuthStatus('guest')
+    setUserName(null)
+    setIsProfileMenuOpen(false)
+    navigate('/')
+  }
 
   const headerStyle = {
     backgroundImage: `linear-gradient(180deg, rgba(245,247,250,${0.1 + scrollProgress * 0.56}), rgba(245,247,250,${0.04 + scrollProgress * 0.34}))`,
@@ -233,12 +242,12 @@ function Navbar() {
                       <circle cx="12" cy="7" r="4" />
                     </svg>
                   </span>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--theme-text)]">
+                  <div className="overflow-hidden">
+                    <p className="truncate text-sm font-semibold text-[var(--theme-text)]">
                       {userName?.name || 'User'}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                      Manage orders, payments and settings
+                    <p className="truncate mt-1 text-xs text-[var(--theme-muted)]">
+                      {userName?.mobileNo ? `+91 ${userName.mobileNo}` : 'Manage your account'}
                     </p>
                   </div>
                 </div>
@@ -262,6 +271,37 @@ function Navbar() {
                     <span className="mt-0.5 text-[var(--theme-accent)]">›</span>
                   </button>
                 ))}
+                
+                <button
+                  onClick={handleLogout}
+                  type="button"
+                  className="flex w-full items-start justify-between rounded-[18px] border border-transparent bg-white/78 px-4 py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#fde7d2] hover:bg-[#fffaf5]"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 text-[var(--theme-accent)]"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--theme-text)]">
+                        Logout
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--theme-muted)]">
+                        Securely sign out of your account
+                      </p>
+                    </div>
+                  </div>
+                  <span className="mt-0.5 text-[var(--theme-accent)]">›</span>
+                </button>
               </div>
             </div>
           )}
