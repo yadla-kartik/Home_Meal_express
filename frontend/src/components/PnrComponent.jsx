@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import dashboardImage from '../assets/dashboard.png'
 import { motion as Motion } from 'framer-motion'
 import {TrainFront } from 'lucide-react'

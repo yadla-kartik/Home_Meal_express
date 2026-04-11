@@ -9,7 +9,7 @@ async function checkForDeliveryAuth(req, res, next) {
   }
 
   const userPayload = verifyToken(tokenValue)
-  if (!userPayload?.id || !userPayload?.sessionId) {
+  if (!userPayload?.id) {
     return res.status(401).json({ message: 'Invalid token' })
   }
 
@@ -18,37 +18,11 @@ async function checkForDeliveryAuth(req, res, next) {
     return res.status(401).json({ message: 'Delivery partner not found' })
   }
 
-  const isExpired =
-    !deliveryBoy.activeSessionExpiresAt || new Date(deliveryBoy.activeSessionExpiresAt).getTime() <= Date.now()
-
-  if (isExpired) {
-    if (deliveryBoy.activeSessionId || deliveryBoy.activeSessionExpiresAt) {
-      deliveryBoy.activeSessionId = ''
-      deliveryBoy.activeSessionExpiresAt = null
-      await deliveryBoy.save()
-    }
-
-    res.clearCookie('DeliveryToken', {
-      httpOnly: true,
-      sameSite: 'lax',
-    })
-    return res.status(401).json({ message: 'Session expired, please login again' })
-  }
-
-  if (deliveryBoy.activeSessionId !== userPayload.sessionId) {
-    res.clearCookie('DeliveryToken', {
-      httpOnly: true,
-      sameSite: 'lax',
-    })
-    return res.status(401).json({ message: 'This account is active on another device' })
-  }
-
   req.user = {
     id: String(deliveryBoy._id),
     name: deliveryBoy.name,
     mobileNo: deliveryBoy.mobileNo,
     isRegistered: Boolean(deliveryBoy.isRegistered),
-    sessionId: deliveryBoy.activeSessionId,
   }
 
   return next()

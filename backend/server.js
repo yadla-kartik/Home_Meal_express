@@ -7,13 +7,14 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { initSocket } = require('./socket')
 
-dotenv.config()
+dotenv.config({ path: path.join(__dirname, '.env') })
 
 // routes import
 const userRoute = require('./routes/userRoutes')
 const chefAuthRoutes = require('./routes/chefAuthRoutes')
 const deliveryRoutes = require('./routes/deliveryRoutes')
 const adminRoutes = require('./routes/adminRoutes')
+const irctcRoutes = require('./routes/irctcRoutes')
 
 // Instance of Express
 const app = express()
@@ -42,6 +43,9 @@ app.use('/api/delivery', deliveryRoutes)
 
 // Admin
 app.use('/api/admin', adminRoutes)
+
+// IRCTC
+app.use('/api/irctc', irctcRoutes)
 
 // Connection of DB and Port Listening
 connectDB()

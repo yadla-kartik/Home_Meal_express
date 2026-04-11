@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import google from '../../../assets/google.png'
 import logo from '../../../assets/logo.png'
-import { userCookieCheck, userLogin } from '../../../../services/userAuthService'
+import { sendUserOtp, userCookieCheck } from '../../../../services/userAuthService'
 import { useNavigate } from 'react-router-dom'
 import LoadingSpinner from '../../../components/LoadingSpinner'
 
@@ -48,13 +48,20 @@ function Login() {
     setIsSubmitting(true)
 
     try {
-      const res = await userLogin(form)
-      if (res?.message === 'Login Successful') {
-        navigate('/dashboard')
+      const payload = {
+        name: form.name.trim(),
+        mobileNo: form.mobileNo.trim(),
+        country: form.country,
+      }
+
+      const res = await sendUserOtp(payload)
+      if (res?.success) {
+        sessionStorage.setItem('userOtpPayload', JSON.stringify(payload))
+        navigate('/otp', { state: payload })
         return
       }
 
-      alert('Invalid Login')
+      alert(res?.message || 'Unable to send OTP')
       setIsSubmitting(false)
     } catch (err) {
       setIsSubmitting(false)

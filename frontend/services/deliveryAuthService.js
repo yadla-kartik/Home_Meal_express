@@ -5,8 +5,8 @@ export const deliveryLogin = async (data) => {
     const res = await api.post('/delivery', data)
     return res.data
   } catch (err) {
-    console.log('Error occured in deliveryAuthService', err.message)
-    return err.response?.data ?? null
+    const message = err.response?.data?.message || err.message || 'Delivery login failed.'
+    return err.response?.data ?? { success: false, message }
   }
 }
 
