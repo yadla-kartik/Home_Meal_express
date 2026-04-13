@@ -29,6 +29,16 @@ export const adminCookieCheck = async () => {
   }
 }
 
+export const adminLogout = async () => {
+  try {
+    const res = await api.post('/admin/logout')
+    return res.data
+  } catch (err) {
+    console.log('Error occured in adminAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}
+
 export const getChefApprovals = async (status = 'pending') => {
   try {
     const res = await api.get('/admin/chef-approvals', {

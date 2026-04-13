@@ -12,6 +12,7 @@ import LoadingSpinner from './components/LoadingSpinner'
 import MainPage from './apps/MainPage'
 import { chefCookieCheck } from '../services/chefAuthService'
 import DeliveryLogin from './apps/delivery/auth/DeliveryLogin'
+import DeliveryOtp from './apps/delivery/auth/DeliveryOtp'
 import DeliveryDashboard from './apps/delivery/deliveryDashboard'
 import DeliveryRegister from './apps/delivery/auth/Register'
 import { deliveryCookieCheck } from '../services/deliveryAuthService'
@@ -100,6 +101,7 @@ function App() {
 
       <Route path="/delivery" element={<Navigate to="/delivery/login" replace />} />
       <Route path="/delivery/login" element={<DeliveryLogin />} />
+      <Route path="/delivery/otp" element={<DeliveryOtp />} />
       <Route
         path="/delivery/register"
         element={

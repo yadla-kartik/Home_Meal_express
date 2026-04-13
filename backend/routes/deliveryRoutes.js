@@ -1,5 +1,6 @@
 const express = require('express')
 const { login, logout } = require('../controllers/deliveryLogin')
+const { verifyAccessToken: verifyDeliveryAccessToken } = require('../controllers/deliveryOtpAuth')
 const { checkForDeliveryAuth } = require('../middleware/deliveryAuth')
 const { createDeliveryRegister, getDeliveryReviewStatus } = require('../controllers/deliveryRegister')
 const { uploadDeliveryRegister } = require('../middleware/deliveryRegisterUpload')
@@ -7,6 +8,7 @@ const { uploadDeliveryRegister } = require('../middleware/deliveryRegisterUpload
 const router = express.Router()
 
 router.post('/', login)
+router.post('/otp/verify-access-token', verifyDeliveryAccessToken)
 router.post('/logout', checkForDeliveryAuth, logout)
 router.post('/register', checkForDeliveryAuth, uploadDeliveryRegister, createDeliveryRegister)
 router.get('/review-status', checkForDeliveryAuth, getDeliveryReviewStatus)

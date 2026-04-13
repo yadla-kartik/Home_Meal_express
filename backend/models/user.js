@@ -7,13 +7,16 @@ const userSchema = mongoose.Schema({
   },
   mobileNo: {
     type: String,
-    required: true,
-  },
-  email:{
-    type: String,
-    required: true,
+    sparse: true,
     unique: true,
-    default: null,
+    trim: true,
+  },
+  email: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true,
   },
   country: {
     type: String,

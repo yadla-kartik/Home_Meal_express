@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Bike } from 'lucide-react'
 import logo from '../../../assets/logo.png'
 import LoadingSpinner from '../../../components/LoadingSpinner'
-import { deliveryCookieCheck, deliveryLogin } from '../../../../services/deliveryAuthService'
+import { deliveryCookieCheck, sendDeliveryOtp } from '../../../../services/deliveryAuthService'
 
 function DeliveryLogin() {
   const navigate = useNavigate()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
   const [form, setForm] = useState({
     name: '',
     mobileNo: '',
@@ -44,27 +43,27 @@ function DeliveryLogin() {
     event.preventDefault()
     if (isSubmitting) return
 
+    const payload = {
+      name: form.name.trim(),
+      mobileNo: form.mobileNo.trim(),
+      country: '+91',
+    }
+
     setIsSubmitting(true)
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        mobileNo: form.mobileNo.trim(),
-        country: '+91',
-      }
-
-      const res = await deliveryLogin(payload)
-
-      if (res?.success) {
-        navigate('/delivery/dashboard')
+      const res = await sendDeliveryOtp(payload)
+      if (!res?.success) {
+        alert(res?.message || 'Unable to send OTP')
+        setIsSubmitting(false)
         return
       }
 
-      alert(res?.message || 'Unable to login')
+      sessionStorage.setItem('deliveryOtpPayload', JSON.stringify(payload))
+      navigate('/delivery/otp', { state: payload })
+    } catch (err) {
+      alert(err?.message || 'Something went wrong')
       setIsSubmitting(false)
-    } catch {
-      setIsSubmitting(false)
-      alert('Something went wrong')
     }
   }
 
@@ -73,8 +72,8 @@ function DeliveryLogin() {
   }
 
   return (
-    <div className="theme-page-shell min-h-screen px-4 py-7 flex items-center justify-center">
-      {isSubmitting && <LoadingSpinner label="Signing you in..." />}
+    <div className="theme-page-shell min-h-screen flex items-center justify-center px-4 py-7">
+      {isSubmitting && <LoadingSpinner label="Sending OTP..." />}
       <form
         className="theme-card w-full max-w-105 rounded-[18px] px-6 pb-6 pt-7 flex flex-col gap-5"
         onSubmit={handleContinue}
@@ -86,7 +85,7 @@ function DeliveryLogin() {
             <span className="delivery-bike-icon relative flex h-4 w-4 items-center justify-center text-[var(--theme-accent)]">
               <Bike size={14} />
             </span>
-            <span>Join as Delivery Partner</span>
+            <span>Delivery Partner Login</span>
           </div>
         </div>
 

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import logo from '../../assets/logo.png'
 import { userCookieCheck, userLogout } from '../../../services/userAuthService'
 
@@ -247,7 +248,7 @@ function Navbar() {
                       {userName?.name || 'User'}
                     </p>
                     <p className="truncate mt-1 text-xs text-[var(--theme-muted)]">
-                      {userName?.mobileNo ? `+91 ${userName.mobileNo}` : 'Manage your account'}
+                      {userName?.mobileNo ? `+91 ${userName.mobileNo}` : `${userName?.email || 'No contact info'}`}
                     </p>
                   </div>
                 </div>
@@ -268,7 +269,7 @@ function Navbar() {
                         {item.hint}
                       </p>
                     </div>
-                    <span className="mt-0.5 text-[var(--theme-accent)]">›</span>
+                    <ChevronRight size={16} className="mt-0.5 text-[var(--theme-accent)]" />
                   </button>
                 ))}
                 
@@ -300,7 +301,6 @@ function Navbar() {
                       </p>
                     </div>
                   </div>
-                  <span className="mt-0.5 text-[var(--theme-accent)]">›</span>
                 </button>
               </div>
             </div>

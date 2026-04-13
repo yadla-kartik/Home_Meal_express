@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import google from '../../../assets/google.png'
 import logo from '../../../assets/logo.png'
-import { sendUserOtp, userCookieCheck } from '../../../../services/userAuthService'
+import { signInWithPopup } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
 import LoadingSpinner from '../../../components/LoadingSpinner'
+import { auth, googleProvider } from '../../../firebase'
+import { sendUserOtp, userCookieCheck, userLogin } from '../../../../services/userAuthService'
 
 function Login() {
   const navigate = useNavigate()
@@ -66,6 +68,46 @@ function Login() {
     } catch (err) {
       setIsSubmitting(false)
       alert(err?.message || 'Something went wrong')
+    }
+  }
+
+  const handleGoogleContinue = async () => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      const googleUser = result?.user
+      const email = googleUser?.email?.trim().toLowerCase()
+      const name = String(googleUser?.displayName || form.name || 'User').trim()
+      const mobileNo = String(googleUser?.phoneNumber || '')
+        .replace(/\D/g, '')
+        .slice(0, 10)
+
+      console.log('[Google Login] Firebase user:', googleUser)
+      console.log('[Google Login] Parsed payload:', { name, email, mobileNo })
+
+      if (!email) {
+        throw new Error('Google account email was not available.')
+      }
+
+      const payload = {
+        name,
+        mobileNo,
+        country: form.country,
+        email,
+      }
+
+      const res = await userLogin(payload)
+      if (!res?.token) {
+        throw new Error(res?.message || 'Unable to login with Google.')
+      }
+
+      navigate('/dashboard')
+    } catch (err) {
+      alert(err?.message || 'Google login failed.')
+      setIsSubmitting(false)
     }
   }
 
@@ -151,6 +193,7 @@ function Login() {
           <button
             type="button"
             disabled={isSubmitting}
+            onClick={handleGoogleContinue}
             className="theme-soft-button flex justify-center items-center w-full rounded-full p-2 text-[15px] font-semibold transition active:scale-[0.98] cursor-pointer"
           >
             <img src={google} alt="Google logo" className="h-5 w-5" />

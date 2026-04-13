@@ -1,5 +1,6 @@
 const express = require('express')
 const { signIn, signUp } = require('../controllers/adminAuth')
+const adminAuth = require('../models/adminAuth')
 const { checkForUserAuth } = require('../middleware/userAuth')
 const {
   getChefApprovals,
@@ -11,9 +12,29 @@ const router = express.Router()
 
 router.post('/signup', signUp)
 router.post('/login', signIn)
+router.post('/logout', (req, res) => {
+  res.clearCookie('adminToken', {
+    httpOnly: true,
+    sameSite: 'lax',
+  })
 
-router.get('/me', checkForUserAuth('adminToken'), (req, res) => {
-  res.status(200).json({ adminUser: req.user })
+  res.status(200).json({ success: true, message: 'Logout successful' })
+})
+
+router.get('/me', checkForUserAuth('adminToken'), async (req, res) => {
+  const adminId = req.user?.id
+
+  if (!adminId) {
+    return res.status(200).json({ adminUser: req.user })
+  }
+
+  const adminRecord = await adminAuth.findById(adminId).select('-password')
+
+  if (!adminRecord) {
+    return res.status(200).json({ adminUser: req.user })
+  }
+
+  res.status(200).json({ adminUser: adminRecord })
 })
 
 router.get('/dashboard', checkForUserAuth('adminToken'), (req, res) => {
