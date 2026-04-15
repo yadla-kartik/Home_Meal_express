@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { RefreshCw, Users, ShieldAlert, Sparkles, UserPlus, Fingerprint, Mail, Phone, ExternalLink } from 'lucide-react'
+import { RefreshCw, Users, UserPlus, Search, X, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import AdminCard from './components/AdminCard'
@@ -23,211 +23,249 @@ function SuperAdminDashboard() {
     setLoadingAdmins(true)
     const res = await getAllAdmins()
     setLoadingAdmins(false)
-
-    if (res?.admins && Array.isArray(res.admins)) {
-      setAdmins(res.admins)
-    } else if (Array.isArray(res)) {
-      setAdmins(res)
-    } else {
-      setAdmins([])
-    }
+    if (res?.admins && Array.isArray(res.admins)) setAdmins(res.admins)
+    else if (Array.isArray(res)) setAdmins(res)
+    else setAdmins([])
   }, [])
 
-  useEffect(() => {
-    fetchAdmins()
-  }, [fetchAdmins])
+  useEffect(() => { fetchAdmins() }, [fetchAdmins])
 
   const handleAddAdmin = async (data) => {
     const res = await addAdmin(data)
-
     if (res?.success || res?.admin) {
-      const msg = res.generatedPassword 
-        ? `Provisioning Successful! Key: ${res.generatedPassword}` 
-        : 'Admin successfully provisioned!'
+      const msg = res.generatedPassword
+        ? `Admin added! Password: ${res.generatedPassword}`
+        : 'Admin added successfully!'
       showToast(msg)
       fetchAdmins()
       return { success: true }
     }
-
-    showToast(res?.message || 'Failed to provision admin', 'error')
+    showToast(res?.message || 'Failed to add admin', 'error')
     return { success: false }
   }
 
   const handleRemoveAdmin = async (id) => {
     const res = await removeAdmin(id)
-
     if (res?.message?.toLowerCase().includes('success') || res?.deleted) {
-      setAdmins((prev) => prev.filter((admin) => admin._id !== id))
-      showToast('Administrative node disconnected.')
+      setAdmins((prev) => prev.filter((a) => a._id !== id))
+      showToast('Admin removed successfully.')
       return
     }
-
-    showToast(res?.message || 'Protocol failure during revocation.', 'error')
+    showToast(res?.message || 'Failed to remove admin.', 'error')
   }
 
-  const filteredAdmins = admins.filter(a => 
-    a.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    a.adminCode?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAdmins = admins.filter(
+    (a) =>
+      a.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.adminCode?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  }
-
   return (
-    <div className="theme-page-shell min-h-screen relative overflow-x-hidden pt-4 pb-20 bg-[#fffcf9]">
-      {/* Decorative background gradients to match the peach/orange theme */}
-      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-orange-100/40 to-transparent blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-orange-200/20 to-transparent blur-[100px] pointer-events-none" />
+    <div className="theme-page-shell min-h-screen pb-14">
 
+      {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: "spring", bounce: 0.5 }}
-            className={`fixed right-6 top-6 z-50 rounded-2xl border px-6 py-4 text-sm font-bold shadow-2xl backdrop-blur-xl flex items-center gap-3 ring-1 ${
-              toast.type === 'error'
-              ? 'border-red-100 bg-red-50/90 text-red-700 ring-red-200/50'
-              : 'border-orange-100 bg-white/95 text-slate-800 ring-orange-200/50'
-            }`}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            className={`fixed top-20 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-xl border backdrop-blur-sm
+              ${toast.type === 'error'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : 'bg-white border-[color:var(--theme-border)] text-[var(--theme-text)]'
+              }`}
           >
-            <Sparkles size={18} className={toast.type === 'error' ? 'text-red-500' : 'text-orange-500'} />
-            <span className="max-w-[420px]">{toast.msg}</span>
+            {toast.type === 'error'
+              ? <AlertCircle size={16} className="text-red-500 shrink-0" />
+              : <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+            }
+            {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="mx-auto max-w-6xl relative z-10 px-4">
-        <SuperAdminNavbar onAddAdmin={() => setModalOpen(true)} />
+      <SuperAdminNavbar onAddAdmin={() => setModalOpen(true)} />
 
-        <main className="mt-16">
-          {/* Hero / Stats Header */}
-          <motion.section 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between mb-12"
-          >
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-22">
+
+        {/* ── Hero Banner ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="relative rounded-3xl overflow-hidden mb-8 px-8 py-10 sm:px-10"
+          style={{
+            background: 'var(--theme-gradient-primary)',
+          }}
+        >
+          {/* decorative blobs */}
+          <div className="absolute -right-8 -top-8 h-52 w-52 rounded-full bg-white/10 pointer-events-none" />
+          <div className="absolute right-16 -bottom-10 h-36 w-36 rounded-full bg-white/5 pointer-events-none" />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100/50 border border-orange-100 text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 mb-4 shadow-sm">
-                <Sparkles size={12} fill="currentColor" /> System Overseer
+              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+                <ShieldCheck size={11} />
+                Super Admin Panel
               </div>
-              <h1 className="text-4xl font-black text-slate-800 tracking-tight lg:text-5xl leading-none">
-                Master Dashboard.
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+                Admin Management
               </h1>
-              <p className="mt-4 text-slate-500 font-medium max-w-xl text-lg">
-                Manage, monitor, and provision administrative access for the Home Meal Express platform.
+              <p className="text-white/65 mt-2 text-sm font-medium">
+                Manage and monitor all admins · Home Meal Express
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-               <div className="flex h-14 items-center gap-3 rounded-2xl border border-slate-100 bg-white bg-opacity-70 backdrop-blur-md px-5 shadow-sm transition-all focus-within:ring-2 focus-within:ring-orange-500/10">
-                  <Users size={18} className="text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search Admin..." 
-                    className="bg-transparent text-sm font-bold text-slate-700 outline-none placeholder:text-slate-300 w-32 sm:w-48"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-               </div>
-               <button 
-                onClick={fetchAdmins}
-                className="grid h-14 w-14 place-items-center rounded-2xl bg-white border border-slate-100 text-slate-400 hover:text-orange-500 hover:border-orange-200 transition-all active:scale-95 shadow-sm shadow-orange-500/5"
-               >
-                <RefreshCw size={18} className={loadingAdmins ? 'animate-spin' : ''} />
-               </button>
-            </div>
-          </motion.section>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="inline-flex items-center gap-2.5 bg-white text-[var(--theme-accent)] font-extrabold text-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-[0.98] w-fit shrink-0 cursor-pointer"
+            >
+              <UserPlus size={16} />
+              Add New Admin
+            </button>
+          </div>
+        </motion.div>
 
-          {/* Quick Metrics */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-14">
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden group">
-                  <div className="absolute -right-4 -bottom-4 text-orange-500/5 transition-transform duration-500 group-hover:scale-110">
-                      <Users size={100} />
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active Clusters</p>
-                  <p className="text-3xl font-black text-slate-800">{admins.length}</p>
-                  <div className="mt-3 flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">System Live</span>
-                  </div>
+        {/* ── Stats Row ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
+        >
+          {[
+            { label: 'Total Admins', value: admins.length, sub: 'Registered on platform', icon: <Users size={17} /> },
+            { label: 'Active', value: admins.length, sub: 'Currently active', icon: <CheckCircle size={17} />, dot: true },
+            { label: 'System Health', value: '100%', sub: 'All clusters operational', icon: <ShieldCheck size={17} /> },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: 0.13 + i * 0.07 }}
+              className="theme-card rounded-2xl px-6 py-5 border border-[color:var(--theme-border)] hover:border-[var(--theme-accent)] hover:shadow-md transition-all group overflow-hidden relative"
+            >
+              {/* ghost icon bg */}
+              <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity text-[var(--theme-accent)]">
+                <div className="scale-[5] origin-bottom-right">{stat.icon}</div>
               </div>
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total PNR Logs</p>
-                  <p className="text-3xl font-black text-slate-800">1,248</p>
-                  <div className="mt-3 text-[11px] font-bold text-emerald-600 uppercase tracking-tighter">+12.5% Growth</div>
+              <div className="flex items-start justify-between mb-1">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--theme-muted)]">{stat.label}</p>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 text-[var(--theme-accent)]" style={{ background: 'var(--theme-accent-soft)' }}>
+                  {stat.icon}
+                </div>
               </div>
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active Orders</p>
-                  <p className="text-3xl font-black text-slate-800">156</p>
-                  <div className="mt-3 text-[11px] font-bold text-blue-600 uppercase tracking-tighter">High Volume</div>
+              <div className="flex items-end gap-2">
+                <p className="text-3xl font-black" style={{ background: 'var(--theme-gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stat.value}</p>
+                {stat.dot && <span className="mb-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />}
               </div>
-              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-center">
-                  <button 
-                    onClick={() => setModalOpen(true)}
-                    className="w-full py-3 bg-orange-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:bg-orange-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              <p className="text-xs text-[var(--theme-muted)] font-semibold mt-2">{stat.sub}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* ── Section Label & Search ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-8 mt-2"
+        >
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl sm:text-3xl font-black text-[var(--theme-text)] tracking-tight">All Admins</h2>
+            <span className="text-sm font-bold bg-[var(--theme-accent-soft)] text-[var(--theme-accent)] px-3 py-1 rounded-full">
+              {filteredAdmins.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="theme-card flex items-center gap-2.5 rounded-2xl px-4 py-3 border border-[color:var(--theme-border)] hover:border-[color:var(--theme-accent)] focus-within:!border-[color:var(--theme-accent)] focus-within:shadow-sm transition-all w-full sm:w-72">
+              <Search size={15} className="text-[var(--theme-muted)] shrink-0" />
+              <input
+                type="text"
+                placeholder="Search by name or code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent text-sm text-[var(--theme-text)] outline-none placeholder-[var(--theme-muted)] w-full font-medium"
+              />
+              <AnimatePresence>
+                {searchTerm && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => setSearchTerm('')}
+                    className="text-[var(--theme-muted)] hover:text-[var(--theme-text)] transition-colors cursor-pointer"
                   >
-                    <UserPlus size={14} /> Provision New
-                  </button>
-              </div>
-          </section>
-
-          {/* Admin List Section */}
-          <section>
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                  Node Entities
-                  <span className="text-xs font-bold px-3 py-1 bg-white border border-slate-100 text-slate-400 rounded-xl shadow-sm">
-                    {filteredAdmins.length} Nodes
-                  </span>
-               </h3>
-               <div className="h-px flex-1 mx-8 bg-gradient-to-r from-slate-100 to-transparent hidden md:block" />
+                    <X size={14} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
 
-            {loadingAdmins ? (
-              <div className="py-24 flex flex-col items-center">
-                <LoadingSpinner label="Synchronizing Node Data..." />
-              </div>
-            ) : filteredAdmins.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-[40px] border border-dashed border-slate-200 py-24 flex flex-col items-center text-center px-10"
+            <button
+              onClick={fetchAdmins}
+              title="Refresh"
+              className="theme-card h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-[color:var(--theme-border)] text-[var(--theme-muted)] hover:text-[var(--theme-accent)] hover:border-[var(--theme-accent)] transition-all active:scale-95 cursor-pointer"
+            >
+              <RefreshCw size={15} className={loadingAdmins ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </motion.div>
+
+        {/* ── Grid ── */}
+        {loadingAdmins ? (
+          <div className="py-28 flex items-center justify-center">
+            <LoadingSpinner label="Loading admins..." />
+          </div>
+        ) : filteredAdmins.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-24 text-center"
+          >
+            <div className="h-16 w-16 rounded-3xl bg-[var(--theme-accent-soft)] flex items-center justify-center mb-5">
+              <Users size={26} className="text-[var(--theme-accent)]" />
+            </div>
+            <h4 className="text-lg font-bold text-[var(--theme-text)] mb-1.5">
+              {searchTerm ? 'No results found' : 'No admins yet'}
+            </h4>
+            <p className="text-sm text-[var(--theme-muted)] max-w-xs mb-7">
+              {searchTerm
+                ? `No admins match "${searchTerm}"`
+                : 'Add your first admin to get started.'}
+            </p>
+            {!searchTerm && (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="theme-primary-button inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.98] cursor-pointer"
               >
-                <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-200 mb-6 font-black text-4xl">?</div>
-                <h4 className="text-xl font-bold text-slate-800">No Administration Clusters Detected</h4>
-                <p className="text-slate-400 mt-2 text-sm max-w-xs mx-auto">Either your search returned zero results or the system is currently independent.</p>
-                <button 
-                    onClick={() => setModalOpen(true)}
-                    className="mt-8 px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold text-sm transition-all flex items-center gap-2"
-                >
-                    <UserPlus size={16} /> Deploy New Cluster
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div 
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {filteredAdmins.map((admin) => (
-                  <AdminCard 
-                    key={admin._id} 
-                    admin={admin} 
-                    onRemove={handleRemoveAdmin} 
-                  />
-                ))}
-              </motion.div>
+                <UserPlus size={15} />
+                Add Admin
+              </button>
             )}
-          </section>
-        </main>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+            {filteredAdmins.map((admin, i) => (
+              <motion.div
+                key={admin._id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, delay: i * 0.06 }}
+              >
+                <AdminCard admin={admin} onRemove={handleRemoveAdmin} />
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
       </div>
 
       <AddAdminModal
