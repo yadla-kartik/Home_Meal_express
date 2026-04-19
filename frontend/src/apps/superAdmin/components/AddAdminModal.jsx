@@ -137,7 +137,7 @@ function AddAdminModal({ isOpen, onClose, onAdd }) {
                     color: 'var(--theme-muted)',
                     fontWeight: 500,
                     marginTop: '4px',
-                  }}>Fill in the details to create a new admin account.</p>
+                  }}>Fill in the details to create a new admin account and send the login OTP by email.</p>
                 </div>
 
                 <button 
@@ -382,7 +382,7 @@ function AddAdminModal({ isOpen, onClose, onAdd }) {
                   lineHeight: 1.5,
                   opacity: 0.75,
                 }}>
-                  Password will be auto-generated. Credentials active for 7 days.
+                  A one-time password will be emailed to this admin, and they will create their own password after first login.
                 </p>
               </div>
             </form>

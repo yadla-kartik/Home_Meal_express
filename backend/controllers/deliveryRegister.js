@@ -1,27 +1,12 @@
-const fs = require('fs')
-const path = require('path')
 const deliveryAuth = require('../models/deliveryAuth')
 const deliveryRegister = require('../models/deliveryRegister')
-
-const cleanupUploadedFiles = (files = {}) => {
-  Object.values(files)
-    .flat()
-    .forEach((file) => {
-      if (!file?.path) return
-
-      const absolutePath = path.resolve(file.path)
-      if (fs.existsSync(absolutePath)) {
-        fs.unlinkSync(absolutePath)
-      }
-    })
-}
+const { uploadImageBuffer } = require('../utils/cloudinary')
 
 const createDeliveryRegister = async (req, res) => {
   try {
     const deliveryBoyId = req.user?.id
 
     if (!deliveryBoyId) {
-      cleanupUploadedFiles(req.files)
       return res.status(401).json({ message: 'Unauthorized' })
     }
 
@@ -54,7 +39,6 @@ const createDeliveryRegister = async (req, res) => {
     const idProofImageFile = req.files?.idProofImage?.[0]
 
     if (!profilePhotoFile || !idProofImageFile) {
-      cleanupUploadedFiles(req.files)
       return res.status(400).json({ message: 'Please upload both Profile Photo and ID Proof Image.' })
     }
 
@@ -65,17 +49,14 @@ const createDeliveryRegister = async (req, res) => {
     const normalizedIfsc = typeof ifscCode === 'string' ? ifscCode.trim().toUpperCase() : ''
 
     if (!['aadhaar', 'pan'].includes(normalizedIdType)) {
-      cleanupUploadedFiles(req.files)
       return res.status(400).json({ message: 'Please select a valid ID type.' })
     }
 
     if (normalizedIdType === 'aadhaar' && !/^\d{12}$/.test(normalizedIdNumber)) {
-      cleanupUploadedFiles(req.files)
       return res.status(400).json({ message: 'Aadhaar number must be exactly 12 digits.' })
     }
 
     if (normalizedIdType === 'pan' && !/^[A-Z]{5}\d{4}[A-Z]$/.test(normalizedIdNumber)) {
-      cleanupUploadedFiles(req.files)
       return res.status(400).json({ message: 'PAN must follow format: 5 letters, 4 digits, 1 letter.' })
     }
 
@@ -90,14 +71,19 @@ const createDeliveryRegister = async (req, res) => {
       }
     }
 
+    const [profilePhotoUrl, idProofImageUrl] = await Promise.all([
+      uploadImageBuffer({ file: profilePhotoFile, folder: 'home-meal-express/delivery-register' }),
+      uploadImageBuffer({ file: idProofImageFile, folder: 'home-meal-express/delivery-register' }),
+    ])
+
     const nextPayload = {
       name,
       mobileNo,
       email,
-      profilePhoto: `/uploads/delivery-register/${profilePhotoFile.filename}`,
+      profilePhoto: profilePhotoUrl,
       idType: normalizedIdType,
       idNumber: normalizedIdNumber,
-      idProofImage: `/uploads/delivery-register/${idProofImageFile.filename}`,
+      idProofImage: idProofImageUrl,
       vehicleType,
       vehicleNumber: normalizedVehicleNumber,
       drivingLicenseNumber: normalizedLicense,
@@ -122,26 +108,12 @@ const createDeliveryRegister = async (req, res) => {
 
     if (existingRegistration) {
       if (existingRegistration.status !== 'rejected') {
-        cleanupUploadedFiles(req.files)
         return res.status(409).json({ message: 'Delivery registration already exists' })
-      }
-
-      const oldFiles = {
-        profilePhoto: existingRegistration.profilePhoto,
-        idProofImage: existingRegistration.idProofImage,
       }
 
       registration = await deliveryRegister.findByIdAndUpdate(existingRegistration._id, nextPayload, {
         new: true,
         runValidators: true,
-      })
-
-      ;[oldFiles.profilePhoto, oldFiles.idProofImage].forEach((filePath) => {
-        if (!filePath) return
-        const absolutePath = path.resolve(`.${filePath}`)
-        if (fs.existsSync(absolutePath)) {
-          fs.unlinkSync(absolutePath)
-        }
       })
     } else {
       registration = await deliveryRegister.create({
@@ -168,8 +140,6 @@ const createDeliveryRegister = async (req, res) => {
       registration,
     })
   } catch (err) {
-    cleanupUploadedFiles(req.files)
-
     if (err?.code === 11000) {
       return res.status(409).json({ message: 'Delivery registration already exists' })
     }

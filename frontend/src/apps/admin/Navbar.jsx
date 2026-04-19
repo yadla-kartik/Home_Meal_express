@@ -1,13 +1,18 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, ShieldCheck, User, LogOut, Bell } from 'lucide-react'
+import { ChevronRight, ShieldCheck, User, LogOut, Bell, KeyRound, ChefHat, Bike } from 'lucide-react'
 import logo from '../../assets/logo.png'
-import { adminCookieCheck, adminLogout } from '../../../services/adminAuthService'
+import { adminLogout } from '../../../services/adminAuthService'
 
-function Navbar() {
+function Navbar({
+  adminUser = null,
+  currentView = 'landing',
+  onOpenChangePassword,
+  onOpenChefVerification,
+  onOpenDeliveryVerification,
+  onOpenOverview,
+}) {
   const [scrollProgress, setScrollProgress] = React.useState(0)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false)
-  const [adminUser, setAdminUser] = React.useState(null)
   const profileMenuRef = React.useRef(null)
 
   React.useEffect(() => {
@@ -25,17 +30,6 @@ function Navbar() {
   }, [])
 
   React.useEffect(() => {
-    let isMounted = true
-
-    async function loadAdminProfile() {
-      const res = await adminCookieCheck()
-      if (isMounted) {
-        setAdminUser(res?.adminUser || null)
-      }
-    }
-
-    loadAdminProfile()
-
     function handlePointerDown(event) {
       if (!profileMenuRef.current?.contains(event.target)) {
         setIsProfileMenuOpen(false)
@@ -52,7 +46,6 @@ function Navbar() {
     document.addEventListener('keydown', handleEscape)
 
     return () => {
-      isMounted = false
       document.removeEventListener('mousedown', handlePointerDown)
       document.removeEventListener('keydown', handleEscape)
     }
@@ -71,14 +64,28 @@ function Navbar() {
   }
 
   const profileMenuItems = [
-    { label: 'Chef Requests', hint: 'Review chef onboarding' },
-    { label: 'Delivery Ops', hint: 'Verify delivery partner profiles' },
-    { label: 'Platform Settings', hint: 'Manage station, pricing and approvals' },
+    {
+      label: 'Chef Verification',
+      hint: 'Review chef onboarding',
+      icon: <ChefHat size={16} className="text-[var(--theme-accent)]" />,
+      onClick: () => onOpenChefVerification?.(),
+    },
+    {
+      label: 'Delivery Verification',
+      hint: 'Verify delivery partner profiles',
+      icon: <Bike size={16} className="text-[var(--theme-accent)]" />,
+      onClick: () => onOpenDeliveryVerification?.(),
+    },
+    {
+      label: 'Change Password',
+      hint: 'Update current admin password',
+      icon: <KeyRound size={16} className="text-[var(--theme-accent)]" />,
+      onClick: () => onOpenChangePassword?.(),
+    },
   ]
 
   const adminName = adminUser?.name || 'Control Room Admin'
-  const adminId =
-    'Manages chefs and delivery profile'
+  const adminId = 'Manages chefs and delivery profile'
 
   const handleLogout = async () => {
     await adminLogout()
@@ -105,17 +112,29 @@ function Navbar() {
         </div>
 
         <nav className="hidden items-center gap-5 text-sm font-medium text-[var(--theme-text)] md:flex">
-          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
+          <button
+            type="button"
+            onClick={() => onOpenOverview?.()}
+            className={`group relative cursor-pointer transition hover:text-[var(--theme-accent)] ${currentView === 'landing' ? 'text-[var(--theme-accent)]' : ''}`}
+          >
             Overview
-            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+            <span className={`absolute -bottom-1 left-0 h-0.5 bg-[var(--theme-accent)] transition-all ${currentView === 'landing' ? 'w-full' : 'w-0 group-hover:w-full'}`} />
           </button>
-          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
-            Requests
-            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+          <button
+            type="button"
+            onClick={() => onOpenChefVerification?.()}
+            className={`group relative cursor-pointer transition hover:text-[var(--theme-accent)] ${currentView === 'chef' ? 'text-[var(--theme-accent)]' : ''}`}
+          >
+            Chef
+            <span className={`absolute -bottom-1 left-0 h-0.5 bg-[var(--theme-accent)] transition-all ${currentView === 'chef' ? 'w-full' : 'w-0 group-hover:w-full'}`} />
           </button>
-          <button className="group relative cursor-pointer transition hover:text-[var(--theme-accent)]">
-            Reports
-            <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all group-hover:w-full" />
+          <button
+            type="button"
+            onClick={() => onOpenDeliveryVerification?.()}
+            className={`group relative cursor-pointer transition hover:text-[var(--theme-accent)] ${currentView === 'delivery' ? 'text-[var(--theme-accent)]' : ''}`}
+          >
+            Delivery
+            <span className={`absolute -bottom-1 left-0 h-0.5 bg-[var(--theme-accent)] transition-all ${currentView === 'delivery' ? 'w-full' : 'w-0 group-hover:w-full'}`} />
           </button>
         </nav>
 
@@ -179,15 +198,22 @@ function Navbar() {
                   <button
                     key={item.label}
                     type="button"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false)
+                      item.onClick?.()
+                    }}
                     className="flex w-full items-start justify-between rounded-[18px] border border-transparent bg-white/78 px-4 py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#fde7d2] hover:bg-[#fffaf5]"
                   >
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--theme-text)]">
-                        {item.label}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--theme-muted)]">
-                        {item.hint}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      {item.icon}
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--theme-text)]">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--theme-muted)]">
+                          {item.hint}
+                        </p>
+                      </div>
                     </div>
                     <ChevronRight size={16} className="mt-0.5 text-[var(--theme-accent)]" />
                   </button>

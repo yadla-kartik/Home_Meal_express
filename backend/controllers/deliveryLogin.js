@@ -1,5 +1,8 @@
 const deliveryAuth = require('../models/deliveryAuth')
 const { generateToken } = require('../utils/jwtAuth')
+const { buildAuthCookieOptions, buildClearCookieOptions } = require('../utils/authCookies')
+
+const DELIVERY_COOKIE_MAX_AGE = 1 * 24 * 60 * 60 * 1000
 
 const login = async (req, res) => {
   try {
@@ -25,11 +28,7 @@ const login = async (req, res) => {
       isRegistered: findDeliveryBoy.isRegistered,
     })
 
-    res.cookie('DeliveryToken', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 1 * 24 * 60 * 60 * 1000,
-    })
+    res.cookie('DeliveryToken', token, buildAuthCookieOptions(DELIVERY_COOKIE_MAX_AGE))
 
     return res.status(200).json({
       success: true,
@@ -45,10 +44,7 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    res.clearCookie('DeliveryToken', {
-      httpOnly: true,
-      sameSite: 'lax',
-    })
+    res.clearCookie('DeliveryToken', buildClearCookieOptions())
 
     return res.status(200).json({ success: true, message: 'Logout successful' })
   } catch (err) {

@@ -33,9 +33,9 @@ function SuperAdminDashboard() {
   const handleAddAdmin = async (data) => {
     const res = await addAdmin(data)
     if (res?.success || res?.admin) {
-      const msg = res.generatedPassword
-        ? `Admin added! Password: ${res.generatedPassword}`
-        : 'Admin added successfully!'
+      const msg = res?.emailSentTo
+        ? `Admin added and onboarding OTP sent to ${res.emailSentTo}.`
+        : 'Admin added and onboarding email sent successfully!'
       showToast(msg)
       fetchAdmins()
       return { success: true }

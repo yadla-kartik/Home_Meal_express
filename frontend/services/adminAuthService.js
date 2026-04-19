@@ -39,6 +39,16 @@ export const adminLogout = async () => {
   }
 }
 
+export const changeAdminPassword = async (data) => {
+  try {
+    const res = await api.patch('/admin/change-password', data)
+    return res.data
+  } catch (err) {
+    console.log('Error occured in adminAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}
+
 export const getChefApprovals = async (status = 'pending') => {
   try {
     const res = await api.get('/admin/chef-approvals', {

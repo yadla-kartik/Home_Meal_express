@@ -1,5 +1,6 @@
 const user = require('../models/user')
 const { generateToken } = require('../utils/jwtAuth')
+const { buildAuthCookieOptions } = require('../utils/authCookies')
 
 const login = async (req, res) => {
   try {
@@ -54,11 +55,7 @@ const login = async (req, res) => {
       email: findUser.email,
     })
 
-    res.cookie('UserToken', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+    res.cookie('UserToken', token, buildAuthCookieOptions(7 * 24 * 60 * 60 * 1000))
 
     return res.status(200).json({
       success: true,

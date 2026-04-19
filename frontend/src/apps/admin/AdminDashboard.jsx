@@ -1,19 +1,60 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { ChefHat, Bike, ArrowRight, ShieldCheck, Sparkles, Users, Clock3, CheckCircle } from 'lucide-react'
 import Navbar from './Navbar'
 import ChefVerification from './components/ChefVerification'
 import DeliveryVerification from './components/DeliveryVerification'
-import { getChefApprovals } from '../../../services/adminAuthService'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import ChangePassword from './components/ChangePassword'
+import { adminCookieCheck, adminLogout, changeAdminPassword, getChefApprovals } from '../../../services/adminAuthService'
+
+const getActiveViewFromPath = (pathname) => {
+  if (pathname.endsWith('/chef-verification')) return 'chef'
+  if (pathname.endsWith('/delivery-verification')) return 'delivery'
+  return 'landing'
+}
 
 function AdminDashboard() {
-  const [activeView, setActiveView] = useState('landing')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [adminProfile, setAdminProfile] = useState(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const [stats, setStats] = useState({
     chef: { total: 0, pending: 0, verified: 0 },
     delivery: { total: 0, pending: 0, verified: 0 }, // placeholders for later
   })
+  const activeView = getActiveViewFromPath(location.pathname)
 
   useEffect(() => {
+    let active = true
+
+    const loadProfile = async () => {
+      setLoadingProfile(true)
+      const res = await adminCookieCheck()
+      if (!active) return
+
+      if (!res?.adminUser) {
+        window.location.href = '/admin/login'
+        return
+      }
+
+      setAdminProfile(res.adminUser)
+      setLoadingProfile(false)
+    }
+
+    loadProfile()
+
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (!adminProfile || adminProfile.mustChangePassword) {
+      return undefined
+    }
+
     let active = true
     const loadStats = async () => {
       const res = await getChefApprovals('all')
@@ -27,11 +68,54 @@ function AdminDashboard() {
     }
     loadStats()
     return () => { active = false }
-  }, [])
+  }, [adminProfile])
+
+  const openOverview = () => navigate('/admin/dashboard')
+  const openChefVerification = () => navigate('/admin/dashboard/chef-verification')
+  const openDeliveryVerification = () => navigate('/admin/dashboard/delivery-verification')
+
+  const handlePasswordChange = async ({ currentPassword, newPassword, confirmPassword }) => {
+    setIsUpdatingPassword(true)
+    const res = await changeAdminPassword({ currentPassword, newPassword, confirmPassword })
+    setIsUpdatingPassword(false)
+
+    if (res?.success && res?.adminUser) {
+      setAdminProfile(res.adminUser)
+      setIsChangePasswordOpen(false)
+      return { success: true }
+    }
+
+    return { success: false, message: res?.message || 'Unable to update password.' }
+  }
+
+  const handleLogout = async () => {
+    await adminLogout()
+    window.location.href = '/admin/login'
+  }
+
+  if (loadingProfile) {
+    return <LoadingSpinner label="Loading admin workspace..." />
+  }
 
   return (
     <div className="theme-page-shell min-h-screen pb-10">
-      <Navbar />
+      <Navbar
+        adminUser={adminProfile}
+        currentView={activeView}
+        onOpenOverview={openOverview}
+        onOpenChefVerification={openChefVerification}
+        onOpenDeliveryVerification={openDeliveryVerification}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+      />
+      <ChangePassword
+        isOpen={Boolean(adminProfile?.mustChangePassword) || isChangePasswordOpen}
+        isSubmitting={isUpdatingPassword}
+        adminEmail={adminProfile?.email}
+        onSubmit={handlePasswordChange}
+        onLogout={adminProfile?.mustChangePassword ? handleLogout : undefined}
+        onClose={() => setIsChangePasswordOpen(false)}
+        isMandatory={Boolean(adminProfile?.mustChangePassword)}
+      />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-20 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
@@ -108,7 +192,7 @@ function AdminDashboard() {
                 <motion.button
                   whileHover={{ y: -4, scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveView('chef')}
+                  onClick={openChefVerification}
                   className="group relative flex flex-col items-start p-6 sm:p-7 rounded-[28px] border border-[rgba(249,115,22,0.2)] bg-white text-left w-full overflow-hidden transition-all duration-300 hover:border-[rgba(249,115,22,0.5)] hover:shadow-[0_24px_54px_rgba(249,115,22,0.16)]"
                   style={{ boxShadow: '0 12px 32px rgba(249,115,22,0.06)' }}
                 >
@@ -166,7 +250,7 @@ function AdminDashboard() {
                 <motion.button
                   whileHover={{ y: -4, scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveView('delivery')}
+                  onClick={openDeliveryVerification}
                   className="group relative flex flex-col items-start p-6 sm:p-7 rounded-[28px] border border-[rgba(16,185,129,0.2)] bg-white text-left w-full overflow-hidden transition-all duration-300 hover:border-[rgba(16,185,129,0.5)] hover:shadow-[0_24px_54px_rgba(16,185,129,0.16)]"
                   style={{ boxShadow: '0 12px 32px rgba(16,185,129,0.06)' }}
                 >
@@ -229,8 +313,8 @@ function AdminDashboard() {
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
             >
-              {activeView === 'chef' && <ChefVerification onBack={() => setActiveView('landing')} />}
-              {activeView === 'delivery' && <DeliveryVerification onBack={() => setActiveView('landing')} />}
+              {activeView === 'chef' && <ChefVerification onBack={openOverview} />}
+              {activeView === 'delivery' && <DeliveryVerification onBack={openOverview} />}
             </motion.div>
           )}
         </AnimatePresence>

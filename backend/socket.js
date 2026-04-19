@@ -2,10 +2,10 @@ const { Server } = require('socket.io')
 
 let io = null
 
-function initSocket(server, origin) {
+function initSocket(server, origins) {
   io = new Server(server, {
     cors: {
-      origin,
+      origin: origins,
       credentials: true,
     },
   })

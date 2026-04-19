@@ -6,6 +6,7 @@ const dotenv = require('dotenv')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { initSocket } = require('./socket')
+const { getAllowedOrigins, isOriginAllowed } = require('./utils/requestOrigins')
 
 dotenv.config({ path: path.join(__dirname, '.env') })
 
@@ -20,18 +21,34 @@ const superAdminRoutes = require('./routes/superAdminRoutes')
 // Instance of Express
 const app = express()
 const server = http.createServer(app)
-const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173'
+const allowedOrigins = getAllowedOrigins()
 
 // Middlewares
+app.set('trust proxy', 1)
 app.use(
   cors({
-    origin: clientOrigin,
+    origin(origin, callback) {
+      if (isOriginAllowed(origin, allowedOrigins)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error('CORS origin not allowed'))
+    },
     credentials: true,
   }),
 )
 app.use(express.json({ limit: '15mb' }))
+app.use(express.urlencoded({ extended: true, limit: '15mb' }))
 app.use(cookieParser())
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Home Meal Express backend is running.',
+    environment: process.env.NODE_ENV || 'development',
+  })
+})
 
 // User
 app.use('/api/login', userRoute)
@@ -53,7 +70,7 @@ app.use('/api/superadmin', superAdminRoutes)
 
 // Connection of DB and Port Listening
 connectDB()
-initSocket(server, clientOrigin)
+initSocket(server, allowedOrigins)
 const Port = process.env.PORT || 5000
 server.listen(Port, () => {
   console.log('Server is running on port ' + Port)

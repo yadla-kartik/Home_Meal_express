@@ -1,7 +1,8 @@
 const express = require('express')
-const { signIn, signUp } = require('../controllers/adminAuth')
+const { signIn, signUp, changePassword } = require('../controllers/adminAuth')
 const adminAuth = require('../models/adminAuth')
 const { checkForUserAuth } = require('../middleware/userAuth')
+const { buildClearCookieOptions } = require('../utils/authCookies')
 const {
   getChefApprovals,
   approveChefApproval,
@@ -12,11 +13,9 @@ const router = express.Router()
 
 router.post('/signup', signUp)
 router.post('/login', signIn)
+router.patch('/change-password', checkForUserAuth('adminToken'), changePassword)
 router.post('/logout', (req, res) => {
-  res.clearCookie('adminToken', {
-    httpOnly: true,
-    sameSite: 'lax',
-  })
+  res.clearCookie('adminToken', buildClearCookieOptions())
 
   res.status(200).json({ success: true, message: 'Logout successful' })
 })

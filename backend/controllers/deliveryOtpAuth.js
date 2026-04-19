@@ -1,5 +1,6 @@
 const deliveryAuth = require('../models/deliveryAuth')
 const { generateToken } = require('../utils/jwtAuth')
+const { buildAuthCookieOptions } = require('../utils/authCookies')
 
 const MSG91_VERIFY_ACCESS_TOKEN_URL = 'https://control.msg91.com/api/v5/widget/verifyAccessToken'
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.MSG91_TOKEN_AUTH || ''
@@ -100,11 +101,7 @@ const verifyAccessToken = async (req, res) => {
       name: resolvedName,
     })
 
-    res.cookie('DeliveryToken', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    })
+    res.cookie('DeliveryToken', token, buildAuthCookieOptions(24 * 60 * 60 * 1000))
 
     return res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@ const crypto = require('crypto')
 const user = require('../models/user')
 const userOtp = require('../models/userOtp')
 const { generateToken } = require('../utils/jwtAuth')
+const { buildAuthCookieOptions } = require('../utils/authCookies')
 
 const MSG91_VERIFY_ACCESS_TOKEN_URL = 'https://control.msg91.com/api/v5/widget/verifyAccessToken'
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.MSG91_TOKEN_AUTH || ''
@@ -280,11 +281,7 @@ const verifyOtp = async (req, res) => {
       country: country || otpRecord.country || '+91',
     })
 
-    res.cookie('UserToken', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+    res.cookie('UserToken', token, buildAuthCookieOptions(7 * 24 * 60 * 60 * 1000))
 
     return res.status(200).json({
       success: true,
@@ -305,24 +302,18 @@ module.exports = {
   verifyOtp,
   verifyAccessToken: async (req, res) => {
     try {
-      console.log('[DEBUG Backend] Verify Access Token route hit!')
       const accessToken = normalizeToken(req.body?.accessToken || req.body?.['access-token'])
       const name = String(req.body?.name || '').trim()
       const country = String(req.body?.country || '+91').trim() || '+91'
       const mobileNo = normalizeMobileNo(req.body?.mobileNo)
 
-      console.log('[DEBUG Backend] MobileNo:', mobileNo, 'AccessToken:', accessToken ? 'PRESENT' : 'MISSING')
-
       if (!accessToken) {
         return res.status(400).json({ success: false, message: 'Access token is required.' })
       }
 
-      console.log('[DEBUG Backend] Calling MSG91 to verify accessToken...')
       const verification = await verifyMsg91AccessToken(accessToken)
-      console.log('[DEBUG Backend] MSG91 verifyAccessToken Response:', verification)
 
       if (verification?.type === 'error' || verification?.success === false) {
-        console.error('[DEBUG Backend] Verification Rejected by MSG91 API:', verification)
         return res.status(400).json({
           success: false,
           message: verification?.message || verification?.error || 'Access token verification failed.',
@@ -333,7 +324,6 @@ module.exports = {
         normalizeMobileNo(verification?.mobile || verification?.data?.mobile || mobileNo) || mobileNo
 
       if (!resolvedMobileNo || resolvedMobileNo.length !== 10) {
-        console.error('[DEBUG Backend] Resolved mobile invalid:', resolvedMobileNo)
         return res.status(400).json({
           success: false,
           message: 'Verified mobile number is invalid.',
@@ -343,20 +333,14 @@ module.exports = {
       const resolvedName =
         String(verification?.name || verification?.data?.name || name || 'User').trim() || 'User'
 
-      console.log('[DEBUG Backend] Issuing user session for:', resolvedMobileNo)
       const { findUser, token } = await issueUserSession({
         mobileNo: resolvedMobileNo,
         name: resolvedName,
         country,
       })
 
-      res.cookie('UserToken', token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      })
+      res.cookie('UserToken', token, buildAuthCookieOptions(7 * 24 * 60 * 60 * 1000))
 
-      console.log('[DEBUG Backend] Access token perfectly verified.')
       return res.status(200).json({
         success: true,
         message: 'Access token verified successfully.',
@@ -365,7 +349,7 @@ module.exports = {
         verification,
       })
     } catch (err) {
-      console.error('[DEBUG Backend] Exception during verifyAccessToken:', err.message)
+      console.error('Error occurred while verifyAccessToken in userOtpAuth controller:', err.message)
       return res.status(500).json({
         success: false,
         message: err.message || 'Unable to verify access token.',
@@ -398,7 +382,7 @@ module.exports = {
         data: fallbackPnrData,
       })
     } catch (err) {
-      console.error('[DEBUG Backend] Exception during checkPnr:', err.message)
+      console.error('Error occurred while checkPnr in userOtpAuth controller:', err.message)
       return res.status(500).json({
         success: false,
         message: 'Internal server error while fetching PNR details.'

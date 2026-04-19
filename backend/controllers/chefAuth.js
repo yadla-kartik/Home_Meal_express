@@ -1,5 +1,8 @@
 const chefAuth = require('../models/chefAuth')
 const { generateToken } = require('../utils/jwtAuth')
+const { buildAuthCookieOptions } = require('../utils/authCookies')
+
+const CHEF_COOKIE_MAX_AGE = 1 * 24 * 60 * 60 * 1000
 
 const signIn = async (req, res) => {
   try {
@@ -25,11 +28,7 @@ const signIn = async (req, res) => {
             isRegistered: findChef.isRegistered,
         })
 
-        res.cookie('chefToken', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            maxAge: 1 * 24 * 60 * 60 * 1000,
-        })
+        res.cookie('chefToken', token, buildAuthCookieOptions(CHEF_COOKIE_MAX_AGE))
 
         return res.status(200).json({
             message: 'Login Successful',
@@ -66,11 +65,7 @@ const signUp = async(req, res) => {
             isRegistered: createChef.isRegistered,
         })
 
-        res.cookie('chefToken', token, {
-            httpOnly: true,
-            sameSite: 'lax',
-            maxAge: 1 * 24 * 60 * 60 * 1000,
-        })
+        res.cookie('chefToken', token, buildAuthCookieOptions(CHEF_COOKIE_MAX_AGE))
 
         return res.status(200).json({
             message: 'SignUp Successful',

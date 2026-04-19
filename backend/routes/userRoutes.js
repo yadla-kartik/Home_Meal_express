@@ -2,6 +2,7 @@ const express = require('express')
 const login = require('../controllers/userLogin')
 const { sendOtp, verifyOtp, verifyAccessToken, checkPnr } = require('../controllers/userOtpAuth')
 const { checkForUserAuth } = require('../middleware/userAuth')
+const { buildClearCookieOptions } = require('../utils/authCookies')
 
 const router = express.Router()
 
@@ -18,7 +19,7 @@ router.get('/me', checkForUserAuth('UserToken'), (req, res) => {
 })
 
 router.post('/logout', (req, res) => {
-  res.clearCookie('UserToken')
+  res.clearCookie('UserToken', buildClearCookieOptions())
   res.status(200).json({ success: true, message: 'Logged out successfully' })
 })
 

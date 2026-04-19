@@ -88,15 +88,15 @@ function AdminLogin() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="admin-login-email" className="theme-label text-[13px] font-semibold">
-              Email
+              Email or Admin Code
             </label>
             <div className="relative">
               <input
                 id="admin-login-email"
-                type="email"
+                type="text"
                 value={loginForm.email}
                 onChange={updateField('email')}
-                placeholder="Enter admin email"
+                placeholder="Enter admin email or code"
                 required
                 className="theme-input h-11 w-full rounded-xl px-3 pr-11 text-sm"
               />
@@ -112,7 +112,7 @@ function AdminLogin() {
           {/* Password */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="admin-login-password" className="theme-label text-[13px] font-semibold">
-              Password
+              Password or One-Time Password
             </label>
             <div className="relative">
               <input
@@ -120,7 +120,7 @@ function AdminLogin() {
                 type={showPassword ? 'text' : 'password'}
                 value={loginForm.password}
                 onChange={updateField('password')}
-                placeholder="Enter admin password"
+                placeholder="Enter OTP or your password"
                 required
                 className="theme-input h-11 w-full rounded-xl px-3 pr-12 text-sm"
               />
@@ -144,7 +144,7 @@ function AdminLogin() {
         </form>
 
         <p className="theme-muted mt-5 text-center text-xs">
-          Secure admin access for stations, chefs, deliveries and order operations.
+          Use the one-time password sent by the super admin on your first login. You will set your own password right after signing in.
         </p>
       </div>
     </div>

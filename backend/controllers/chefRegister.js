@@ -1,29 +1,19 @@
-const fs = require('fs')
-const path = require('path')
 const chefAuth = require('../models/chefAuth')
 const chefRegister = require('../models/chefRegister')
 const { generateToken } = require('../utils/jwtAuth')
 const { encryptField } = require('../utils/fieldCrypto')
 const { emitToAdmins, emitToChef } = require('../socket')
 const { serializeChefApproval } = require('../utils/chefApprovalPayload')
+const { uploadImageBuffer } = require('../utils/cloudinary')
+const { buildAuthCookieOptions } = require('../utils/authCookies')
 
-const cleanupUploadedFiles = (files = {}) => {
-    Object.values(files).flat().forEach((file) => {
-        if (!file?.path) return
-
-        const absolutePath = path.resolve(file.path)
-        if (fs.existsSync(absolutePath)) {
-            fs.unlinkSync(absolutePath)
-        }
-    })
-}
+const CHEF_COOKIE_MAX_AGE = 1 * 24 * 60 * 60 * 1000
 
 const createChefRegister = async (req, res) => {
     try {
         const chefId = req.user?.id
 
         if (!chefId) {
-            cleanupUploadedFiles(req.files)
             return res.status(401).json({ message: 'Unauthorized' })
         }
 
@@ -60,7 +50,6 @@ const createChefRegister = async (req, res) => {
         const kitchenPhotoFile = req.files?.kitchenPhoto?.[0]
 
         if (!idProofFile || !chefPhotoFile || !kitchenPhotoFile) {
-            cleanupUploadedFiles(req.files)
             return res.status(400).json({ message: 'Please upload ID Proof, Chef Photo and Kitchen Photo in PNG, JPG or JPEG format.' })
         }
 
@@ -68,17 +57,14 @@ const createChefRegister = async (req, res) => {
         const normalizedIdNumber = typeof idNumber === 'string' ? idNumber.trim().toUpperCase() : ''
 
         if (!['aadhaar', 'pan'].includes(normalizedIdType)) {
-            cleanupUploadedFiles(req.files)
             return res.status(400).json({ message: 'Please select a valid ID type.' })
         }
 
         if (normalizedIdType === 'aadhaar' && !/^\d{12}$/.test(normalizedIdNumber)) {
-            cleanupUploadedFiles(req.files)
             return res.status(400).json({ message: 'Aadhaar number must be exactly 12 digits.' })
         }
 
         if (normalizedIdType === 'pan' && !/^[A-Z]{5}\d{4}[A-Z]$/.test(normalizedIdNumber)) {
-            cleanupUploadedFiles(req.files)
             return res.status(400).json({ message: 'PAN must follow format: 5 letters, 4 digits, 1 letter.' })
         }
 
@@ -88,14 +74,12 @@ const createChefRegister = async (req, res) => {
         })
 
         if (duplicateChef) {
-            cleanupUploadedFiles(req.files)
             return res.status(409).json({ message: 'Email already in use' })
         }
 
         const existingChef = await chefAuth.findById(chefId)
 
         if (!existingChef) {
-            cleanupUploadedFiles(req.files)
             return res.status(404).json({ message: 'Chef not found' })
         }
 
@@ -109,6 +93,12 @@ const createChefRegister = async (req, res) => {
                 parsedAvailableDays = availableDays.split(',').map((day) => day.trim()).filter(Boolean)
             }
         }
+
+        const [idProofUrl, chefPhotoUrl, kitchenPhotoUrl] = await Promise.all([
+            uploadImageBuffer({ file: idProofFile, folder: 'home-meal-express/chef-register' }),
+            uploadImageBuffer({ file: chefPhotoFile, folder: 'home-meal-express/chef-register' }),
+            uploadImageBuffer({ file: kitchenPhotoFile, folder: 'home-meal-express/chef-register' }),
+        ])
 
         const nextRegistrationPayload = {
             kitchenName,
@@ -125,11 +115,11 @@ const createChefRegister = async (req, res) => {
             openTime,
             closeTime,
             availableDays: parsedAvailableDays,
-            idProof: `/uploads/chef-register/${idProofFile.filename}`,
+            idProof: idProofUrl,
             idType: normalizedIdType,
             idNumber: encryptField(normalizedIdNumber),
-            chefPhoto: `/uploads/chef-register/${chefPhotoFile.filename}`,
-            kitchenPhoto: `/uploads/chef-register/${kitchenPhotoFile.filename}`,
+            chefPhoto: chefPhotoUrl,
+            kitchenPhoto: kitchenPhotoUrl,
             upiOrAccount: encryptField(upiOrAccount),
             accountHolder: encryptField(accountHolder),
             bankName: encryptField(bankName),
@@ -144,14 +134,7 @@ const createChefRegister = async (req, res) => {
 
         if (existingRegistration) {
             if (existingRegistration.reviewStatus !== 'rejected') {
-                cleanupUploadedFiles(req.files)
                 return res.status(409).json({ message: 'Chef registration already exists' })
-            }
-
-            const oldFiles = {
-                idProof: existingRegistration.idProof,
-                chefPhoto: existingRegistration.chefPhoto,
-                kitchenPhoto: existingRegistration.kitchenPhoto,
             }
 
             registration = await chefRegister.findByIdAndUpdate(
@@ -162,14 +145,6 @@ const createChefRegister = async (req, res) => {
                     runValidators: true,
                 },
             )
-
-            ;[oldFiles.idProof, oldFiles.chefPhoto, oldFiles.kitchenPhoto].forEach((filePath) => {
-                if (!filePath) return
-                const absolutePath = path.resolve(`.${filePath}`)
-                if (fs.existsSync(absolutePath)) {
-                    fs.unlinkSync(absolutePath)
-                }
-            })
         } else {
             registration = await chefRegister.create({
                 createdBy: chefId,
@@ -199,11 +174,7 @@ const createChefRegister = async (req, res) => {
             isRegistered: updatedChef.isRegistered,
         })
 
-        res.cookie('chefToken', Cheftoken, {
-            httpOnly: true,
-            sameSite: 'lax',
-            maxAge: 1 * 24 * 60 * 60 * 1000,
-        })
+        res.cookie('chefToken', Cheftoken, buildAuthCookieOptions(CHEF_COOKIE_MAX_AGE))
 
         return res.status(201).json({
             message: existingRegistration ? 'Chef registration resubmitted successfully' : 'Chef registered successfully',
@@ -212,8 +183,6 @@ const createChefRegister = async (req, res) => {
             token: Cheftoken,
         })
     } catch (err) {
-        cleanupUploadedFiles(req.files)
-
         if (err?.code === 11000) {
             return res.status(409).json({ message: 'Chef registration already exists' })
         }
