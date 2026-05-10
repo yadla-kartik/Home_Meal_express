@@ -114,20 +114,20 @@ export default function ChangePassword({
             {/* Top Decoration Gradient */}
             <div className="absolute top-0 left-0 right-0 h-32 bg-[linear-gradient(135deg,rgba(249,115,22,0.15),transparent)] rounded-t-[32px]" />
 
-            <div className="relative px-8 pt-10 pb-8 sm:px-10">
+            <div className="relative px-8 pt-6 pb-6 sm:px-10">
               {/* Icon */}
-              <div className="mb-6 flex justify-center">
-                <div className="h-16 w-16 rounded-[24px] bg-[linear-gradient(135deg,#fff6ef,#ffecd8)] border border-[rgba(249,115,22,0.15)] text-[var(--theme-accent)] flex items-center justify-center shadow-[0_8px_16px_rgba(249,115,22,0.12)]">
-                  <KeyRound size={28} strokeWidth={2.5} />
+              <div className="mb-4 flex justify-center">
+                <div className="h-12 w-12 rounded-[20px] bg-[linear-gradient(135deg,#fff6ef,#ffecd8)] border border-[rgba(249,115,22,0.15)] text-[var(--theme-accent)] flex items-center justify-center shadow-[0_8px_16px_rgba(249,115,22,0.12)]">
+                  <KeyRound size={22} strokeWidth={2.5} />
                 </div>
               </div>
 
               {/* Headings */}
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center gap-1 mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)] bg-[var(--theme-accent-soft)] px-2.5 py-1 rounded-full">
+              <div className="text-center mb-5">
+                <div className="inline-flex items-center gap-1 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)] bg-[var(--theme-accent-soft)] px-2.5 py-1 rounded-full">
                   <ShieldCheck size={12} /> {isMandatory ? 'Mandatory Security Step' : 'Account Security'}
                 </div>
-                <h2 className="text-2xl sm:text-[26px] font-bold text-[var(--theme-text-strong)] tracking-tight mb-2">
+                <h2 className="text-xl sm:text-[22px] font-bold text-[var(--theme-text-strong)] tracking-tight mb-1">
                   Change Password
                 </h2>
                 <p className="text-[13px] text-[var(--theme-muted)] font-medium leading-relaxed">
@@ -143,7 +143,7 @@ export default function ChangePassword({
               </div>
 
               {/* Form UI */}
-              <form className="space-y-5" onSubmit={handleSubmit}>
+              <form className="space-y-3.5" onSubmit={handleSubmit}>
                 {!isMandatory && (
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-[var(--theme-text)] uppercase tracking-wider pl-1">
@@ -158,7 +158,7 @@ export default function ChangePassword({
                         placeholder="Enter current password"
                         value={form.currentPassword}
                         onChange={updateField('currentPassword')}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-10 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-[14px] py-2 pl-10 pr-10 text-[13px] font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
                       />
                       <button
                         type="button"
@@ -185,7 +185,7 @@ export default function ChangePassword({
                       placeholder="Enter new password"
                       value={form.newPassword}
                       onChange={updateField('newPassword')}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-10 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[14px] py-2 pl-10 pr-10 text-[13px] font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
                     />
                     <button
                       type="button"
@@ -211,7 +211,7 @@ export default function ChangePassword({
                       placeholder="Re-enter new password"
                       value={form.confirmPassword}
                       onChange={updateField('confirmPassword')}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-10 pr-10 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[14px] py-2 pl-10 pr-10 text-[13px] font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]/20 focus:border-[var(--theme-accent)] transition-all"
                     />
                     <button
                       type="button"
@@ -224,7 +224,7 @@ export default function ChangePassword({
                 </div>
 
                 {/* Password Requirements UI (Optional Display) */}
-                <ul className="grid grid-cols-2 gap-2 pt-1 pb-3 px-1">
+                <ul className="grid grid-cols-2 gap-1.5 pt-0 pb-1 px-1">
                   <li className={`text-[11px] font-medium flex items-center gap-1.5 ${checks.length ? 'text-emerald-600' : 'text-[var(--theme-muted)]'}`}>
                     <div className={`h-1.5 w-1.5 rounded-full ${checks.length ? 'bg-emerald-500' : 'bg-slate-300'}`}></div> 8+ characters
                   </li>

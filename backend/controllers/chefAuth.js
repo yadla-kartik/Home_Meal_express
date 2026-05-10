@@ -38,7 +38,7 @@ const signIn = async (req, res) => {
     }
     catch (err) {
         console.error('Error occurred while signIn file name (chefAuth controller file):', err.message)
-        return res.status(500).json({ message: 'Server error'})
+        return res.status(500).json({ message: 'Server error', error: err.message})
     }
 }
 
@@ -80,7 +80,7 @@ const signUp = async(req, res) => {
 
     } catch (err) {
         console.error('Error occurred while signUp file name (chefAuth controller file):', err.message)
-        return res.status(500).json({ message: 'Server error'})
+        return res.status(500).json({ message: 'Server error', error: err.message})
     }
 }
 
