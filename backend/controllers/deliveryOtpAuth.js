@@ -4,6 +4,8 @@ const { buildAuthCookieOptions } = require('../utils/authCookies')
 
 const MSG91_VERIFY_ACCESS_TOKEN_URL = 'https://control.msg91.com/api/v5/widget/verifyAccessToken'
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.MSG91_TOKEN_AUTH || ''
+const DELIVERY_SESSION_EXPIRES_IN = '10d'
+const DELIVERY_COOKIE_MAX_AGE = 10 * 24 * 60 * 60 * 1000
 
 const normalizeMobileNo = (value) => String(value ?? '').replace(/\D/g, '').slice(0, 10)
 const normalizeToken = (value) => String(value ?? '').trim()
@@ -45,7 +47,7 @@ const issueDeliverySession = async ({ mobileNo, name }) => {
   const findDeliveryBoy = await deliveryAuth.findOneAndUpdate(
     { mobileNo },
     {
-      $set: {
+      $setOnInsert: {
         name,
         mobileNo,
       },
@@ -53,12 +55,15 @@ const issueDeliverySession = async ({ mobileNo, name }) => {
     { new: true, upsert: true, setDefaultsOnInsert: true },
   )
 
-  const token = generateToken({
-    id: findDeliveryBoy._id,
-    name: findDeliveryBoy.name,
-    mobileNo: findDeliveryBoy.mobileNo,
-    isRegistered: findDeliveryBoy.isRegistered,
-  })
+  const token = generateToken(
+    {
+      id: findDeliveryBoy._id,
+      name: findDeliveryBoy.name,
+      mobileNo: findDeliveryBoy.mobileNo,
+      isRegistered: findDeliveryBoy.isRegistered,
+    },
+    DELIVERY_SESSION_EXPIRES_IN,
+  )
 
   return { findDeliveryBoy, token }
 }
@@ -101,7 +106,7 @@ const verifyAccessToken = async (req, res) => {
       name: resolvedName,
     })
 
-    res.cookie('DeliveryToken', token, buildAuthCookieOptions(24 * 60 * 60 * 1000))
+    res.cookie('DeliveryToken', token, buildAuthCookieOptions(DELIVERY_COOKIE_MAX_AGE))
 
     return res.status(200).json({
       success: true,

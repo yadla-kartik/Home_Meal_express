@@ -2,7 +2,8 @@ const deliveryAuth = require('../models/deliveryAuth')
 const { generateToken } = require('../utils/jwtAuth')
 const { buildAuthCookieOptions, buildClearCookieOptions } = require('../utils/authCookies')
 
-const DELIVERY_COOKIE_MAX_AGE = 1 * 24 * 60 * 60 * 1000
+const DELIVERY_SESSION_EXPIRES_IN = '10d'
+const DELIVERY_COOKIE_MAX_AGE = 10 * 24 * 60 * 60 * 1000
 
 const login = async (req, res) => {
   try {
@@ -15,18 +16,19 @@ const login = async (req, res) => {
         name,
         mobileNo,
       })
-    } else if (name && findDeliveryBoy.name !== name) {
-      findDeliveryBoy.name = name
     }
 
     await findDeliveryBoy.save()
 
-    const token = generateToken({
-      id: findDeliveryBoy._id,
-      name: findDeliveryBoy.name,
-      mobileNo: findDeliveryBoy.mobileNo,
-      isRegistered: findDeliveryBoy.isRegistered,
-    })
+    const token = generateToken(
+      {
+        id: findDeliveryBoy._id,
+        name: findDeliveryBoy.name,
+        mobileNo: findDeliveryBoy.mobileNo,
+        isRegistered: findDeliveryBoy.isRegistered,
+      },
+      DELIVERY_SESSION_EXPIRES_IN,
+    )
 
     res.cookie('DeliveryToken', token, buildAuthCookieOptions(DELIVERY_COOKIE_MAX_AGE))
 

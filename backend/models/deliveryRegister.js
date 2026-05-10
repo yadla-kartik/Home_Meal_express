@@ -48,6 +48,11 @@ const deliveryRegisterSchema = new mongoose.Schema(
       default: '',
     },
 
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+
     isOnline: {
       type: Boolean,
       default: false,

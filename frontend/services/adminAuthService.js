@@ -80,3 +80,35 @@ export const rejectChefApproval = async (approvalId, reason) => {
     return err.response?.data ?? null
   }
 }
+
+export const getDeliveryApprovals = async (status = 'pending') => {
+  try {
+    const res = await api.get('/admin/delivery-approvals', {
+      params: { status },
+    })
+    return res.data
+  } catch (err) {
+    console.log('Error occured in adminAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const approveDeliveryApproval = async (approvalId) => {
+  try {
+    const res = await api.patch(`/admin/delivery-approvals/${approvalId}/approve`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured in adminAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const rejectDeliveryApproval = async (approvalId, reason) => {
+  try {
+    const res = await api.patch(`/admin/delivery-approvals/${approvalId}/reject`, { reason })
+    return res.data
+  } catch (err) {
+    console.log('Error occured in adminAuthService', err.message)
+    return err.response?.data ?? null
+  }
+}

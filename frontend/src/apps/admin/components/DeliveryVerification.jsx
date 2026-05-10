@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   CheckCircle,
   Clock3,
@@ -23,64 +23,95 @@ import {
   CheckCircle2,
   BadgeCheck
 } from 'lucide-react'
-
-// PURE DUMMY DATA FOR UI ONLY
-const DUMMY_APPROVALS = [
-  {
-    id: 'del-1',
-    name: 'Rahul Sharma',
-    mobile: '+91 9876543210',
-    email: 'rahul.sharma@example.com',
-    dob: '1995-08-15',
-    city: 'Mumbai',
-    permanentAddress: '102, Sunshine Apartments, Andheri West, Mumbai, Maharashtra 400053',
-    experience: '2',
-    nearestStation: 'Andheri West',
-    vehicleType: 'Motorcycle',
-    vehicleNumber: 'MH-12-AB-1234',
-    panNumber: 'ABCDE1234F',
-    aadhaarNumber: '123456789012',
-    drivingLicenseNumber: 'DL-1420110012345',
-    bankName: 'HDFC Bank',
-    accountHolderName: 'Rahul Sharma',
-    accountNumber: '50100234567890',
-    ifscCode: 'HDFC0001234',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    documents: {
-      photo: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400&q=80',
-      idProof: 'https://images.unsplash.com/photo-1626863905121-3b0c0ed7b94c?w=400&q=80',
-      license: 'https://images.unsplash.com/photo-1579562413550-93a8d11db845?w=400&q=80',
-    }
-  },
-  {
-    id: 'del-2',
-    name: 'Amit Kumar',
-    mobile: '+91 8765432109',
-    email: 'amit.kumar@example.com',
-    dob: '1998-11-20',
-    city: 'Mumbai',
-    permanentAddress: 'Row House 4, Bandra East, Mumbai, Maharashtra 400051',
-    experience: '1',
-    nearestStation: 'Bandra East',
-    vehicleType: 'Electric Scooter',
-    vehicleNumber: 'MH-02-XY-9876',
-    panNumber: 'XYZAQ9876M',
-    aadhaarNumber: '987654321098',
-    drivingLicenseNumber: 'DL-0420150098765',
-    bankName: 'ICICI Bank',
-    accountHolderName: 'Amit Kumar',
-    accountNumber: '00012456789',
-    ifscCode: 'ICIC0000001',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    documents: {
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-      idProof: 'https://images.unsplash.com/photo-1626863905121-3b0c0ed7b94c?w=400&q=80',
-      license: 'https://images.unsplash.com/photo-1579562413550-93a8d11db845?w=400&q=80',
-    }
-  }
-]
+import LoadingSpinner from '../../../components/LoadingSpinner'
+import {
+  approveDeliveryApproval,
+  getDeliveryApprovals,
+  rejectDeliveryApproval,
+} from '../../../../services/adminAuthService'
+import { getAdminSocket } from '../../../../services/socket'
 
 const surfaceShellCls = 'rounded-[22px] border border-[rgba(249,115,22,0.18)] bg-white shadow-[0_4px_24px_rgba(249,115,22,0.03)]'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
+
+const normalizeApprovalStatus = (status) => (
+  ['pending', 'approved', 'all'].includes(status) ? status : 'pending'
+)
+
+const getApprovalModeMeta = (mode) => {
+  if (mode === 'all') {
+    return {
+      apiStatus: 'all',
+      title: 'All riders',
+      countLabel: 'total',
+      emptyTitle: 'No rider profiles yet',
+      emptyText: 'Delivery applications will appear here automatically.',
+      emptyDetailTitle: 'No rider profiles found',
+      emptyDetailText: 'Once riders register, their verification status will appear here.',
+    }
+  }
+
+  if (mode === 'approved') {
+    return {
+      apiStatus: 'approved',
+      title: 'Verified riders',
+      countLabel: 'verified',
+      emptyTitle: 'No verified riders',
+      emptyText: 'Approved rider profiles will appear here automatically.',
+      emptyDetailTitle: 'No rider profiles verified',
+      emptyDetailText: 'Profiles approved by admin will appear in this list.',
+    }
+  }
+
+  return {
+    apiStatus: 'pending',
+    title: 'Pending Riders',
+    countLabel: 'waiting',
+    emptyTitle: 'No pending riders',
+    emptyText: 'New delivery applications will appear here automatically.',
+    emptyDetailTitle: 'No delivery profiles pending',
+    emptyDetailText: 'Approved and rejected profiles are already out of this review list.',
+  }
+}
+
+const getStatusRank = (status) => {
+  if (status === 'pending') return 0
+  if (status === 'rejected') return 1
+  if (status === 'approved') return 2
+  return 3
+}
+
+const sortApprovalsForMode = (items, mode) => {
+  return [...items].sort((a, b) => {
+    if (mode === 'all') {
+      const statusDiff = getStatusRank(a.status) - getStatusRank(b.status)
+      if (statusDiff !== 0) return statusDiff
+    }
+
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  })
+}
+
+const buildImageUrl = (path) => {
+  if (!path) return ''
+  return path.startsWith('http') ? path : `${BACKEND_URL}${path}`
+}
+
+const getFileName = (path, fallback) => {
+  if (!path) return fallback
+  const clean = path.split('?')[0]
+  const parts = clean.split('/')
+  return parts[parts.length - 1] || fallback
+}
+
+const mergeApprovals = (current, incoming) => {
+  const map = new Map()
+  current.forEach((item) => map.set(item.id, item))
+  incoming.forEach((item) => map.set(item.id, item))
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),
+  )
+}
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -109,7 +140,7 @@ function Section({ title, icon, children, compact = false }) {
     <div className="bg-white rounded-[20px] border border-[rgba(249,115,22,0.25)] shadow-[0_4px_16px_rgba(249,115,22,0.03)] overflow-hidden h-full">
       <div className="px-5 py-3 border-b border-[rgba(249,115,22,0.15)] flex items-center gap-1 bg-[linear-gradient(180deg,#fffaf4,#fff7f0)]">
         {icon}
-        <h3 className="text-[14px] font-extrabold text-[var(--theme-text-strong)]">{title}</h3>
+        <h3 className="text-[14px] font-semibold text-[var(--theme-text-strong)]">{title}</h3>
       </div>
       <div
         className={`${compact ? 'p-3' : 'p-5'} grid grid-cols-1 sm:grid-cols-2 ${compact ? "gap-y-4 gap-x-4" : "gap-y-5 gap-x-6"
@@ -124,7 +155,7 @@ function Section({ title, icon, children, compact = false }) {
 function MiniCard({ icon, label, value }) {
   return (
     <div className="rounded-[16px] border border-[rgba(249,115,22,0.2)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3.5 py-3 min-w-[110px] shadow-[0_4px_12px_rgba(249,115,22,0.04)] transition-transform hover:-translate-y-0.5">
-      <p className="text-[10px] text-[var(--theme-muted)] flex items-center gap-1 font-bold uppercase tracking-[0.15em]">
+      <p className="text-[10px] text-[var(--theme-muted)] flex items-center gap-1 font-semibold uppercase tracking-[0.12em]">
         <span className="text-[#f97316] opacity-80">{icon}</span>
         {label}
       </p>
@@ -136,7 +167,7 @@ function MiniCard({ icon, label, value }) {
 function InfoItem({ icon, label, value }) {
   return (
     <div>
-      <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.12em] flex items-center gap-1.5 mb-1.5">
         {icon ? <span className="text-slate-400">{icon}</span> : null}
         {label}
       </p>
@@ -145,40 +176,54 @@ function InfoItem({ icon, label, value }) {
   );
 }
 
-function QueueItem({ approval, isSelected, onSelect }) {
+function QueueItem({ approval, isSelected, onSelect, mode }) {
+  const status = approval.status || 'pending'
+  const statusLabel = status === 'approved' ? 'Verified' : status === 'rejected' ? 'Rejected' : 'Pending'
+  const tone = mode === 'pending' ? 'orange' : status === 'approved' ? 'green' : 'red'
+  const selectedCls = {
+    orange: 'border-[var(--theme-accent)] bg-[linear-gradient(180deg,#fffcf9,#fff7f0)] shadow-[0_8px_20px_rgba(249,115,22,0.08)]',
+    green: 'border-emerald-200 bg-[linear-gradient(180deg,#f0fdf4_0%,#dcfce7_100%)] shadow-[0_16px_32px_rgba(16,185,129,0.12)]',
+    red: 'border-red-200 bg-[linear-gradient(180deg,#fff7f7_0%,#fee2e2_100%)] shadow-[0_16px_32px_rgba(220,38,38,0.10)]',
+  }[tone]
+  const idleCls = {
+    orange: 'border-[rgba(249,115,22,0.15)] bg-white hover:bg-[#fffdfa] hover:border-[rgba(249,115,22,0.3)]',
+    green: 'border-emerald-100 bg-[linear-gradient(180deg,#ffffff,#f5fff9)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5',
+    red: 'border-red-100 bg-[linear-gradient(180deg,#ffffff,#fff7f7)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5',
+  }[tone]
+  const badgeCls = {
+    orange: `${isSelected ? 'bg-[#fff6ef] border-[rgba(249,115,22,0.2)] text-[var(--theme-accent)]' : 'bg-white border-slate-200 text-slate-500'}`,
+    green: `border-emerald-200 text-emerald-700 ${isSelected ? 'bg-white' : 'bg-emerald-50'}`,
+    red: `border-red-200 text-red-600 ${isSelected ? 'bg-white' : 'bg-red-50'}`,
+  }[tone]
+  const metaIconCls = tone === 'green' ? 'text-emerald-600' : tone === 'red' ? 'text-red-500' : 'text-[var(--theme-accent)]'
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-[20px] border px-4 py-4 text-left transition ${isSelected
-        ? 'border-[var(--theme-accent)] bg-[linear-gradient(180deg,#fffcf9,#fff7f0)] shadow-[0_8px_20px_rgba(249,115,22,0.08)]'
-        : 'border-[rgba(249,115,22,0.15)] bg-white hover:bg-[#fffdfa] hover:border-[rgba(249,115,22,0.3)]'
-        }`}
+      className={`w-full rounded-[20px] border px-4 py-4 text-left transition duration-150 ease-out ${isSelected ? selectedCls : idleCls}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[15px] font-extrabold text-[var(--theme-text-strong)]">{approval.name}</p>
-          <p className="mt-1 text-[11px] text-[var(--theme-accent)] uppercase font-bold tracking-widest">
+          <p className="text-[15px] font-semibold text-[var(--theme-text-strong)]">{approval.name}</p>
+          <p className="mt-1 text-[11px] text-[var(--theme-accent)] uppercase font-semibold tracking-[0.12em]">
             {approval.vehicleType}
           </p>
         </div>
         <span
-          className={`rounded-full border px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.15em] ${isSelected
-            ? 'bg-[#fff6ef] border-[rgba(249,115,22,0.2)] text-[var(--theme-accent)]'
-            : 'bg-white border-slate-200 text-slate-500'
-            }`}
+          className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${badgeCls}`}
         >
-          Wait
+          {statusLabel}
         </span>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] font-bold text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <MapPin size={13} className="text-[var(--theme-accent)] opacity-70" />
+          <MapPin size={13} className={`${metaIconCls} opacity-70`} />
           {approval.city}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <Clock3 size={13} className="text-[var(--theme-accent)] opacity-70" />
+          <Clock3 size={13} className={`${metaIconCls} opacity-70`} />
           {formatDate(approval.createdAt)}
         </span>
       </div>
@@ -186,18 +231,25 @@ function QueueItem({ approval, isSelected, onSelect }) {
   )
 }
 
-function ImageCard({ label, imageUrl, alt, onOpen }) {
+function ImageCard({ label, imagePath, alt, onOpen }) {
+  const imageUrl = buildImageUrl(imagePath)
+  const fileName = getFileName(imagePath, label)
+
+  if (!imageUrl) {
+    return null
+  }
+
   return (
     <div className="rounded-[16px] border border-[rgba(249,115,22,0.25)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-2 shadow-[0_4px_16px_rgba(249,115,22,0.03)]">
       <div className="flex items-center justify-between px-1">
         <div className="min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#f97316]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#f97316]">
             {label}
           </p>
         </div>
         <a
           href={imageUrl}
-          download="document_file.jpg"
+          download={fileName}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 rounded-full border border-[rgba(249,115,22,0.15)] bg-[var(--theme-accent-soft)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--theme-accent)] transition hover:bg-white"
@@ -209,16 +261,16 @@ function ImageCard({ label, imageUrl, alt, onOpen }) {
 
       <button
         type="button"
-        onClick={() => onOpen({ label, imageUrl, fileName: 'document_file.jpg', alt })}
+        onClick={() => onOpen({ label, imageUrl, fileName, alt })}
         className="group mt-1 block w-full overflow-hidden rounded-[12px] bg-[#fffcf9] border border-[rgba(249,115,22,0.12)] hover:border-[#f97316]/40 transition"
       >
         <div className="relative flex h-36 w-full items-center justify-center overflow-hidden rounded-[12px]">
           <img
             src={imageUrl}
             alt={alt}
-            className="h-full w-full object-cover p-1 transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover p-1 transition duration-150 ease-out group-hover:scale-[1.02]"
           />
-          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[11px] font-bold text-[var(--theme-text-strong)] shadow-[0_12px_24px_rgba(249,115,22,0.15)] opacity-0 transition duration-300 group-hover:opacity-100">
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[11px] font-semibold text-[var(--theme-text-strong)] shadow-[0_12px_24px_rgba(249,115,22,0.15)] opacity-0 transition duration-150 ease-out group-hover:opacity-100">
             <ExternalLink size={12} />
             View
           </span>
@@ -229,12 +281,141 @@ function ImageCard({ label, imageUrl, alt, onOpen }) {
 }
 
 // MAIN COMPONENT
-function DeliveryVerification({ onBack }) {
-  const [selectedId, setSelectedId] = useState(DUMMY_APPROVALS[0]?.id || '')
+function DeliveryVerification({ onBack, approvalStatus = 'pending' }) {
+  const approvalMode = normalizeApprovalStatus(approvalStatus)
+  const modeMeta = getApprovalModeMeta(approvalMode)
+  const [approvals, setApprovals] = useState([])
+  const [selectedId, setSelectedId] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isActing, setIsActing] = useState('')
   const [previewImage, setPreviewImage] = useState(null)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [rejectError, setRejectError] = useState('')
 
-  const selectedApproval = DUMMY_APPROVALS.find((item) => item.id === selectedId) || null
+  useEffect(() => {
+    let isMounted = true
+
+    const loadApprovals = async () => {
+      setIsLoading(true)
+      const res = await getDeliveryApprovals(modeMeta.apiStatus)
+      if (!isMounted) return
+
+      const nextApprovals = Array.isArray(res?.approvals) ? res.approvals : []
+      const sortedApprovals = sortApprovalsForMode(nextApprovals, approvalMode)
+
+      setApprovals(sortedApprovals)
+      setSelectedId((selectedPrev) => {
+        if (selectedPrev && sortedApprovals.some((item) => item.id === selectedPrev)) {
+          return selectedPrev
+        }
+        return sortedApprovals[0]?.id || ''
+      })
+      setIsLoading(false)
+    }
+
+    loadApprovals()
+
+    return () => {
+      isMounted = false
+    }
+  }, [approvalMode, modeMeta.apiStatus])
+
+  useEffect(() => {
+    const socket = getAdminSocket()
+
+    const joinAdminRoom = () => {
+      socket.emit('join-admin-room')
+    }
+
+    socket.on('connect', joinAdminRoom)
+    socket.connect()
+    if (socket.connected) {
+      joinAdminRoom()
+    }
+
+    const handleCreated = (approval) => {
+      if (approvalMode === 'approved') return
+
+      setApprovals((prev) => sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode))
+      setSelectedId((prev) => prev || approval.id)
+    }
+
+    const handleUpdated = (approval) => {
+      setApprovals((prev) => {
+        if (approvalMode === 'all') {
+          return sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode)
+        }
+
+        if (approvalMode === 'approved' && approval.status === 'approved') {
+          return sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode)
+        }
+
+        return prev.filter((item) => item.id !== approval.id)
+      })
+      setSelectedId((prev) => {
+        if (prev !== approval.id) return prev
+        return ''
+      })
+    }
+
+    socket.on('delivery:approval-created', handleCreated)
+    socket.on('delivery:approval-updated', handleUpdated)
+
+    return () => {
+      socket.off('connect', joinAdminRoom)
+      socket.off('delivery:approval-created', handleCreated)
+      socket.off('delivery:approval-updated', handleUpdated)
+      socket.disconnect()
+    }
+  }, [approvalMode])
+
+  const selectedApproval = approvals.find((item) => item.id === selectedId) || approvals[0] || null
+
+  const closeRejectModal = () => {
+    if (isActing === 'reject') return
+    setIsRejectModalOpen(false)
+    setRejectionReason('')
+    setRejectError('')
+  }
+
+  const handleApprove = async () => {
+    if (!selectedApproval || selectedApproval.status !== 'pending' || isActing) return
+
+    setIsActing('approve')
+    const response = await approveDeliveryApproval(selectedApproval.id)
+    setIsActing('')
+
+    if (!response?.approval && !response?.message?.includes('successfully')) {
+      window.alert(response?.message || 'Unable to update delivery approval')
+    }
+  }
+
+  const handleRejectSubmit = async () => {
+    if (!selectedApproval || selectedApproval.status !== 'pending' || isActing) return
+
+    const trimmedReason = rejectionReason.trim()
+    if (!trimmedReason) {
+      setRejectError('Please enter a rejection reason')
+      return
+    }
+
+    setRejectError('')
+    setIsActing('reject')
+    const response = await rejectDeliveryApproval(selectedApproval.id, trimmedReason)
+    setIsActing('')
+
+    if (!response?.approval && !response?.message?.includes('successfully')) {
+      setRejectError(response?.message || 'Unable to reject delivery approval')
+      return
+    }
+
+    closeRejectModal()
+  }
+
+  if (isLoading) {
+    return <LoadingSpinner label="Loading delivery approvals..." />
+  }
 
   return (
     <>
@@ -250,29 +431,33 @@ function DeliveryVerification({ onBack }) {
               >
                 <ArrowLeft size={16} />
               </button>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--theme-text-strong)]">
-                Queue
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
+                {modeMeta.title}
               </p>
             </div>
-            <span className="rounded-full border border-[rgba(249,115,22,0.2)] bg-white px-2.5 py-1 text-[10px] font-bold text-[var(--theme-accent)]">
-              {DUMMY_APPROVALS.length} wait
+            <span className="rounded-full border border-[rgba(249,115,22,0.16)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--theme-accent)]">
+              {approvals.length} {modeMeta.countLabel}
             </span>
           </div>
 
-          <div className="px-4 pb-4 max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar">
+          <div className="px-4 pb-4 pt-4 max-h-[calc(100vh-220px)] overflow-y-auto custom-scrollbar">
             <div className="space-y-4">
-              {DUMMY_APPROVALS.length ? (
-                DUMMY_APPROVALS.map((approval) => (
+              {approvals.length ? (
+                approvals.map((approval) => (
                   <QueueItem
                     key={approval.id}
                     approval={approval}
                     isSelected={selectedApproval?.id === approval.id}
                     onSelect={() => setSelectedId(approval.id)}
+                    mode={approvalMode}
                   />
                 ))
               ) : (
-                <div className="rounded-[16px] border border-[rgba(249,115,22,0.15)] bg-slate-50 p-5 text-center">
-                  <p className="text-[14px] font-semibold text-slate-600">Queue clear</p>
+                <div className="rounded-[16px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-5 text-center shadow-[var(--theme-shadow-soft)]">
+                  <p className="text-[14px] font-semibold text-[var(--theme-text)]">{modeMeta.emptyTitle}</p>
+                  <p className="mt-2 text-[12px] leading-5 text-[var(--theme-muted)]">
+                    {modeMeta.emptyText}
+                  </p>
                 </div>
               )}
             </div>
@@ -283,21 +468,19 @@ function DeliveryVerification({ onBack }) {
         <div className="flex flex-col flex-1 min-w-0 h-full">
           {selectedApproval ? (
             <div className="rounded-[28px] bg-[#ffffff] border border-[rgba(249,115,22,0.18)] shadow-[0_12px_40px_rgba(249,115,22,0.06)] overflow-hidden pb-4">
-              {/* Profile Header Banner */}
-              <div className="h-28 bg-[linear-gradient(135deg,#1e293b,#0f172a)] relative z-0"></div>
-
-              <div className="px-3 md:px-4 -mt-12 relative z-10">
-                <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 bg-white rounded-2xl p-4 shadow-[0_4px_24px_rgba(249,115,22,0.08)] border border-[rgba(249,115,22,0.15)]">
+              <div className="px-3 pt-4 md:px-4 md:pt-5 relative z-10">
+                <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 rounded-2xl border border-[var(--theme-surface-border)] bg-white p-4 shadow-[0_14px_34px_rgba(15,23,42,0.08)]">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(249,115,22,0.82),transparent)]" />
                   {/* Photo and Titles */}
-                  <div className="flex items-center gap-5">
+                  <div className="relative flex items-center gap-5">
                     <div className="relative group shrink-0">
                       <img
-                        src={selectedApproval.documents.photo}
+                        src={buildImageUrl(selectedApproval.documents.profilePhoto)}
                         alt="Profile"
-                        className="w-[110px] h-[110px] rounded-[22px] object-cover border-[4px] border-white shadow-[0_12px_24px_rgba(0,0,0,0.12)] bg-slate-50"
+                        className="w-[110px] h-[110px] rounded-[22px] object-cover border-[4px] border-white shadow-[0_14px_28px_rgba(15,23,42,0.12)] bg-[var(--theme-app-bg)]"
                       />
                       <a
-                        href={selectedApproval.documents.photo}
+                        href={buildImageUrl(selectedApproval.documents.profilePhoto)}
                         download={`${selectedApproval.name}_profile.jpg`}
                         target="_blank"
                         rel="noreferrer"
@@ -308,39 +491,57 @@ function DeliveryVerification({ onBack }) {
                       </a>
                     </div>
                     <div className="pt-2">
-                      <h1 className="text-[20px] md:text-[22px] font-black text-[var(--theme-text-strong)] tracking-tight leading-tight">{selectedApproval.name}</h1>
+                      <h1 className="text-[20px] md:text-[22px] font-bold text-[var(--theme-text-strong)] tracking-tight leading-tight">{selectedApproval.name}</h1>
                       <p className="text-[13px] font-bold text-slate-500 mt-0.5">{selectedApproval.email}</p>
-                      <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 border rounded-lg text-[9px] font-black uppercase tracking-[0.2em] bg-red-50 text-red-600 border-red-100">
+                      <div className={`mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 border rounded-lg text-[9px] font-semibold uppercase tracking-[0.14em] ${
+                        selectedApproval.status === 'approved'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          : 'bg-red-50 text-red-600 border-red-100'
+                      }`}>
                         <BadgeCheck size={12} strokeWidth={3} />
-                        Under Review
+                        {selectedApproval.status === 'approved' ? 'Verified' : selectedApproval.status === 'rejected' ? 'Rejected' : 'Under Review'}
                       </div>
                     </div>
                   </div>
 
                   {/* Actions / Mini Stats */}
-                  <div className="flex flex-col items-end gap-4 w-full lg:w-auto mt-2 lg:mt-0">
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setIsRejectModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 rounded-[14px] border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-extrabold text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition shadow-sm"
-                      >
-                        <XCircle size={15} />
-                        Reject
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1.5 rounded-[14px] bg-[linear-gradient(135deg,#f97316,#ea580c)] px-6 py-2.5 text-[13px] font-extrabold text-white shadow-[0_8px_16px_rgba(234,88,12,0.25)] hover:brightness-110 transition"
-                      >
-                        <CheckCircle size={15} />
-                        Approve Profile
-                      </button>
-                    </div>
+                  <div className="relative flex flex-col items-end gap-4 w-full lg:w-auto mt-2 lg:mt-0">
+                    {selectedApproval.status === 'pending' ? (
+                      <div className="flex gap-2 w-full sm:w-auto justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setIsRejectModalOpen(true)}
+                          disabled={Boolean(isActing)}
+                          className="inline-flex items-center gap-1.5 rounded-[14px] border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-semibold text-slate-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition shadow-sm"
+                        >
+                          <XCircle size={15} />
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleApprove}
+                          disabled={Boolean(isActing)}
+                          className="inline-flex items-center gap-1.5 rounded-[14px] bg-[linear-gradient(135deg,#f97316,#ea580c)] px-6 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_16px_rgba(234,88,12,0.25)] hover:brightness-110 transition"
+                        >
+                          <CheckCircle size={15} />
+                          {isActing === 'approve' ? 'Approving...' : 'Approve Profile'}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`inline-flex items-center gap-1.5 rounded-[14px] border px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.12em] ${
+                        selectedApproval.status === 'approved'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-red-200 bg-red-50 text-red-600'
+                      }`}>
+                        {selectedApproval.status === 'approved' ? <CheckCircle size={15} /> : <XCircle size={15} />}
+                        {selectedApproval.status === 'approved' ? 'Verified' : 'Rejected'}
+                      </span>
+                    )}
 
                     <div className="flex gap-2.5 w-full overflow-x-auto pb-1 custom-scrollbar">
                       <MiniCard icon={<Briefcase size={14} />} label="Applied" value={formatDate(selectedApproval.createdAt)} />
                       <MiniCard icon={<MapPin size={14} />} label="Area" value={selectedApproval.city} />
-                      <MiniCard icon={<IdCard size={14} />} label="Exp" value={`${selectedApproval.experience} Yrs`} />
+                      <MiniCard icon={<IdCard size={14} />} label="Station" value={selectedApproval.nearestStation} />
                     </div>
                   </div>
                 </div>
@@ -349,10 +550,10 @@ function DeliveryVerification({ onBack }) {
                   {/* Left Column */}
                   <div className="xl:col-span-2 grid grid-cols-1 gap-6">
                     <Section title="Personal Details" icon={<User size={16} className="text-[#f97316]" />}>
-                      <InfoItem icon={<Phone size={14} />} label="Mobile Number" value={selectedApproval.mobile} />
-                      <InfoItem icon={<Calendar size={14} />} label="Date of Birth" value={formatDate(selectedApproval.dob)} />
+                      <InfoItem icon={<Phone size={14} />} label="Mobile Number" value={selectedApproval.mobileNo} />
+                      <InfoItem icon={<Calendar size={14} />} label="Shift Timing" value={`${selectedApproval.startTime || '-'} - ${selectedApproval.endTime || '-'}`} />
                       <div className="sm:col-span-2">
-                        <InfoItem icon={<MapPin size={14} />} label="Permanent Address" value={selectedApproval.permanentAddress} />
+                        <InfoItem icon={<MapPin size={14} />} label="Permanent Address" value={selectedApproval.address} />
                       </div>
                     </Section>
 
@@ -366,7 +567,7 @@ function DeliveryVerification({ onBack }) {
                     <Section title="Vehicle & Licensing" icon={<Car size={16} className="text-[#f97316]" />} compact>
                       <InfoItem label="Vehicle Type" value={selectedApproval.vehicleType} />
                       <InfoItem label="Vehicle Number" value={selectedApproval.vehicleNumber} />
-                      <InfoItem label="Aadhaar" value={maskAadhaar(selectedApproval.aadhaarNumber)} />
+                      <InfoItem label={selectedApproval.idType === 'pan' ? 'PAN' : 'Aadhaar'} value={selectedApproval.idType === 'pan' ? selectedApproval.idNumber : maskAadhaar(selectedApproval.idNumber)} />
                       <InfoItem label="Driving Licence" value={selectedApproval.drivingLicenseNumber} />
                     </Section>
                   </div>
@@ -375,8 +576,7 @@ function DeliveryVerification({ onBack }) {
                   <div className="grid grid-cols-1 gap-6 h-fit">
                     <Section title="Required Proofs" icon={<FileText size={16} className="text-[#f97316]" />} compact>
                       <div className="col-span-1 sm:col-span-2 space-y-3 px-1">
-                        <ImageCard label="ID Proof" imageUrl={selectedApproval.documents.idProof} alt="Rider ID proof" onOpen={setPreviewImage} />
-                        <ImageCard label="Current License" imageUrl={selectedApproval.documents.license} alt="Driving License" onOpen={setPreviewImage} />
+                        <ImageCard label="ID Proof" imagePath={selectedApproval.documents.idProofImage} alt="Rider ID proof" onOpen={setPreviewImage} />
                       </div>
                     </Section>
 
@@ -386,7 +586,7 @@ function DeliveryVerification({ onBack }) {
                           <Shield size={18} className="text-[#f97316]" />
                         </div>
                         <div>
-                          <h3 className="text-[14px] font-extrabold text-slate-800">Verification Integrity</h3>
+                          <h3 className="text-[14px] font-semibold text-slate-800">Verification Integrity</h3>
                           <p className="text-[12px] text-slate-600 mt-1.5 leading-relaxed font-bold">
                             Cross-check name spellings with uploaded documents carefully before approval.
                           </p>
@@ -399,7 +599,12 @@ function DeliveryVerification({ onBack }) {
             </div>
           ) : (
             <div className={`${surfaceShellCls} flex flex-1 items-center justify-center p-6 text-center h-full min-h-[420px]`}>
-              <p className="text-slate-500 font-bold">Queue is clear</p>
+              <div>
+                <p className="text-[16px] font-semibold text-[var(--theme-text)]">{modeMeta.emptyDetailTitle}</p>
+                <p className="mt-2 text-sm font-medium text-[var(--theme-muted)]">
+                  {modeMeta.emptyDetailText}
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -416,10 +621,10 @@ function DeliveryVerification({ onBack }) {
               <X size={18} />
             </button>
             <div className="mb-4 pr-14">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-accent)]">
                 {previewImage.label}
               </p>
-              <p className="mt-1.5 truncate text-lg font-black text-slate-900">
+              <p className="mt-1.5 truncate text-lg font-bold text-slate-900">
                 {previewImage.fileName}
               </p>
             </div>
@@ -440,43 +645,54 @@ function DeliveryVerification({ onBack }) {
           <div className="w-full max-w-xl rounded-[28px] border border-red-200 bg-white p-5 shadow-2xl sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-red-600">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-red-600">
                   Reject rider profile
                 </p>
-                <h3 className="mt-2.5 text-2xl font-black text-slate-900">
+                <h3 className="mt-2.5 text-2xl font-bold text-slate-900">
                   Reason for rejection
                 </h3>
               </div>
               <button
-                onClick={() => setIsRejectModalOpen(false)}
+                onClick={closeRejectModal}
+                disabled={isActing === 'reject'}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
               >
                 <X size={18} />
               </button>
             </div>
             <div className="mt-6">
-              <label className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-slate-600">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-600">
                 Rejection Note
               </label>
               <textarea
+                value={rejectionReason}
+                onChange={(event) => {
+                  setRejectionReason(event.target.value)
+                  if (rejectError) setRejectError('')
+                }}
                 rows={5}
                 placeholder="Briefly describe what needs to be fixed..."
                 className="mt-2.5 w-full rounded-[16px] border border-slate-200 bg-[#fafcfd] px-5 py-4 text-sm font-medium leading-relaxed outline-none transition focus:border-red-300 focus:bg-white shadow-inner"
               />
+              {rejectError ? (
+                <p className="mt-2 text-sm font-medium text-[#dc2626]">{rejectError}</p>
+              ) : null}
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() => setIsRejectModalOpen(false)}
-                className="rounded-[14px] border border-slate-200 bg-white px-5 py-3 text-[14px] font-extrabold text-slate-700 transition hover:bg-slate-50"
+                onClick={closeRejectModal}
+                disabled={isActing === 'reject'}
+                className="rounded-[14px] border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => setIsRejectModalOpen(false)}
-                className="rounded-[14px] bg-red-600 px-6 py-3 text-[14px] font-extrabold text-white shadow-md transition hover:bg-red-700"
+                onClick={handleRejectSubmit}
+                disabled={isActing === 'reject'}
+                className="rounded-[14px] bg-red-600 px-6 py-3 text-[14px] font-semibold text-white shadow-md transition hover:bg-red-700"
               >
-                Mark as Rejected
+                {isActing === 'reject' ? 'Submitting...' : 'Mark as Rejected'}
               </button>
             </div>
           </div>

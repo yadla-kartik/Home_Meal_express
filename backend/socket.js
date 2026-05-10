@@ -22,6 +22,12 @@ function initSocket(server, origins) {
       console.log(`Chef connected to Socket.IO: ${chefId} (${socket.id})`)
     })
 
+    socket.on('join-delivery-room', (deliveryId) => {
+      if (!deliveryId) return
+      socket.join(`delivery-room:${deliveryId}`)
+      console.log(`Delivery connected to Socket.IO: ${deliveryId} (${socket.id})`)
+    })
+
     socket.on('disconnect', () => {
       console.log(`Socket.IO client disconnected: ${socket.id}`)
     })
@@ -42,8 +48,15 @@ function emitToChef(chefId, eventName, payload) {
   io.to(`chef-room:${chefId}`).emit(eventName, payload)
 }
 
+function emitToDelivery(deliveryId, eventName, payload) {
+  if (!io || !deliveryId) return
+  console.log(`Socket event emitted to delivery ${deliveryId}: ${eventName} (${payload?.id || 'no-id'})`)
+  io.to(`delivery-room:${deliveryId}`).emit(eventName, payload)
+}
+
 module.exports = {
   initSocket,
   emitToAdmins,
   emitToChef,
+  emitToDelivery,
 }

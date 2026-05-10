@@ -1,352 +1,393 @@
-import React, { useState } from 'react'
-import { ChevronDown, Clock3, IndianRupee, Plus, Soup, Store, UtensilsCrossed, Vegan } from 'lucide-react'
+import React from 'react'
+import {
+  ArrowLeft,
+  Clock3,
+  ImagePlus,
+  IndianRupee,
+  Plus,
+  Sparkles,
+  Tags,
+  Trash2,
+  UtensilsCrossed,
+} from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import Navbar from './Navbar'
 
-const categoryOptions = ['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Beverages', 'Desserts']
-const spiceLevels = ['Mild', 'Medium', 'Spicy']
+const emptyDish = {
+  name: '',
+  description: '',
+  price: '',
+  category: 'Veg',
+  prepTime: '20',
+  available: true,
+  servingSize: '1 person',
+  spiceLevel: 'Medium',
+  addOns: '',
+  tags: ['Homemade'],
+  stations: ['Raipur'],
+  imageMode: 'ai',
+}
 
-const initialMenu = [
+const starterDishes = [
   {
-    id: 1,
-    dishName: 'Paneer Butter Masala',
-    category: 'Dinner',
-    price: '220',
+    id: 'dish-1',
+    name: 'Gharwali Veg Thali',
+    description: 'Fresh dal, seasonal sabzi, rice, roti and homemade pickle packed for train travel.',
+    price: '149',
+    category: 'Veg',
     prepTime: '25',
+    available: true,
+    servingSize: '1 person',
     spiceLevel: 'Medium',
-    isVeg: true,
-    isAvailable: true,
+    addOns: 'Extra roti, curd',
+    tags: ['Homemade', 'Healthy', 'Low Oil'],
+    stations: ['Raipur', 'Durg'],
+    imageMode: 'ai',
   },
   {
-    id: 2,
-    dishName: 'Veg Biryani',
-    category: 'Lunch',
-    price: '180',
-    prepTime: '30',
-    spiceLevel: 'Spicy',
-    isVeg: true,
-    isAvailable: false,
+    id: 'dish-2',
+    name: 'Poha Snack Box',
+    description: 'Light poha with peanuts, sev and lemon. Good for morning departures.',
+    price: '79',
+    category: 'Snacks',
+    prepTime: '12',
+    available: true,
+    servingSize: '1 box',
+    spiceLevel: 'Mild',
+    addOns: 'Tea flask',
+    tags: ['Quick', 'Homemade'],
+    stations: ['Raipur'],
+    imageMode: 'upload',
   },
 ]
 
-const initialForm = {
-  dishName: '',
-  category: 'Lunch',
-  price: '',
-  prepTime: '',
-  spiceLevel: 'Medium',
-  description: '',
-  isVeg: true,
-  isAvailable: true,
+const categories = ['Veg', 'Non-Veg', 'Snacks', 'Breakfast', 'Thali']
+const spiceLevels = ['Mild', 'Medium', 'Spicy']
+const tagOptions = ['Healthy', 'Homemade', 'Low Oil', 'Quick', 'Protein Rich']
+const stationOptions = ['Raipur', 'Durg', 'Bhilai', 'Nagpur']
+
+const fieldCls = 'theme-input min-h-11 rounded-2xl px-4 py-3 text-sm font-medium'
+const labelCls = 'text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]'
+
+function ToggleChip({ active, children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
+          : 'border-slate-200 bg-white text-[var(--theme-muted)] hover:border-[var(--theme-chip-border)]'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DishPreview({ dish, selected, onClick, onRemove }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-[22px] border p-3 text-left transition ${
+        selected
+          ? 'border-[var(--theme-accent)] bg-[linear-gradient(180deg,#fffaf4,#fff3e7)] shadow-[0_16px_32px_rgba(249,115,22,0.13)]'
+          : 'border-[rgba(249,115,22,0.14)] bg-white hover:-translate-y-0.5 hover:shadow-[var(--theme-shadow-soft)]'
+      }`}
+    >
+      <div className="flex gap-3">
+        <div className="grid h-18 w-18 shrink-0 place-items-center overflow-hidden rounded-[18px] border border-[var(--theme-chip-border)] bg-[linear-gradient(135deg,#fff7ef,#ffffff)] text-[var(--theme-accent)]">
+          <UtensilsCrossed size={24} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-bold text-[var(--theme-text)]">
+                {dish.name || 'Untitled dish'}
+              </h3>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--theme-muted)]">
+                {dish.description || 'Add a short dish description.'}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--theme-accent)] shadow-[var(--theme-shadow-soft)]">
+              Rs. {dish.price || '0'}
+            </span>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full border border-[var(--theme-chip-border)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[var(--theme-muted)]">
+              {dish.category}
+            </span>
+            <span className="rounded-full border border-[var(--theme-chip-border)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[var(--theme-muted)]">
+              {dish.prepTime} min
+            </span>
+            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${
+              dish.available ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-red-100 bg-red-50 text-red-600'
+            }`}>
+              {dish.available ? 'Available' : 'Paused'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              event.stopPropagation()
+              onRemove()
+            }
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full border border-red-100 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+        >
+          <Trash2 size={12} />
+          Remove
+        </span>
+      </div>
+    </button>
+  )
 }
 
 function AddMenu() {
-  const [menuItems, setMenuItems] = useState(initialMenu)
-  const [menuForm, setMenuForm] = useState(initialForm)
+  const navigate = useNavigate()
+  const [dishes, setDishes] = React.useState(starterDishes)
+  const [selectedId, setSelectedId] = React.useState(starterDishes[0].id)
+  const selectedDish = dishes.find((dish) => dish.id === selectedId) || dishes[0]
 
-  const updateField = (key) => (event) => {
-    const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value
-    setMenuForm((prev) => ({ ...prev, [key]: value }))
+  const updateDish = (key, value) => {
+    setDishes((prev) => prev.map((dish) => (
+      dish.id === selectedDish.id ? { ...dish, [key]: value } : dish
+    )))
   }
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
+  const toggleArrayValue = (key, value) => {
+    const current = selectedDish[key] || []
+    const next = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value]
+    updateDish(key, next)
+  }
 
-    const newItem = {
-      id: Date.now(),
-      dishName: menuForm.dishName.trim(),
-      category: menuForm.category,
-      price: menuForm.price,
-      prepTime: menuForm.prepTime,
-      spiceLevel: menuForm.spiceLevel,
-      isVeg: menuForm.isVeg,
-      isAvailable: menuForm.isAvailable,
+  const addDish = () => {
+    const nextDish = {
+      ...emptyDish,
+      id: `dish-${Date.now()}`,
+      name: `New dish ${dishes.length + 1}`,
     }
-
-    setMenuItems((prev) => [newItem, ...prev])
-    setMenuForm(initialForm)
+    setDishes((prev) => [nextDish, ...prev])
+    setSelectedId(nextDish.id)
   }
 
-  const toggleAvailability = (id) => {
-    setMenuItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isAvailable: !item.isAvailable } : item
-      )
-    )
+  const removeDish = (dishId) => {
+    setDishes((prev) => {
+      const next = prev.filter((dish) => dish.id !== dishId)
+      if (selectedId === dishId) {
+        setSelectedId(next[0]?.id || '')
+      }
+      return next
+    })
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#fff1df,#f8fafc_58%,#eef2f7)] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(118deg,#ea6c0a_0%,var(--theme-accent)_38%,#fb923c_65%,#fdba74_100%)] px-6 py-8 text-white shadow-[0_18px_36px_rgba(15,23,42,0.16)] sm:px-8 lg:px-10">
-          <div className="absolute -left-16 top-0 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-44 w-44 rounded-full bg-[#c2410c]/25 blur-3xl" />
+    <div className="min-h-screen bg-[var(--theme-app-bg)]">
+      <Navbar isRegistered onRegisterClick={() => navigate('/chef/register')} />
 
-          <div className="relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em]">
-                <Store className="h-3.5 w-3.5" />
-                Chef Menu Studio
+      <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 pb-8 pt-22 sm:px-6 lg:px-8">
+        <section className="rounded-[28px] border border-[var(--theme-chip-border)] bg-white px-5 py-5 shadow-[var(--theme-shadow-card)] sm:px-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <button
+                type="button"
+                onClick={() => navigate('/chef/dashboard')}
+                className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--theme-accent)]"
+              >
+                <ArrowLeft size={14} />
+                Back to dashboard
+              </button>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
+                Menu setup
               </p>
-              <h1 className="mt-4 max-w-xl text-3xl font-bold leading-tight sm:text-4xl">
-                Add dishes, set pricing and manage daily availability
+              <h1 className="mt-2 text-2xl font-bold leading-tight text-[var(--theme-text)] sm:text-3xl">
+                Add menu for your kitchen
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85 sm:text-base">
-                Build a strong menu for your customers with dish details, prep time, spice level,
-                and availability all in one place.
+              <p className="mt-2 text-sm leading-6 text-[var(--theme-muted)]">
+                Create homemade dishes with clear pricing, prep time, station availability and images so passengers can order confidently.
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-2xl border border-white/20 bg-white/14 p-4 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/70">Items added</p>
-                <p className="mt-2 text-3xl font-bold">{menuItems.length}</p>
-              </div>
-              <div className="rounded-2xl border border-white/20 bg-white/14 p-4 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/70">Available now</p>
-                <p className="mt-2 text-3xl font-bold">
-                  {menuItems.filter((item) => item.isAvailable).length}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/20 bg-white/14 p-4 backdrop-blur-sm">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/70">Veg dishes</p>
-                <p className="mt-2 text-3xl font-bold">
-                  {menuItems.filter((item) => item.isVeg).length}
-                </p>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={addDish}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:-translate-y-0.5"
+            >
+              <Plus size={16} />
+              Add dish
+            </button>
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-[28px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-7">
-            <div className="flex items-start justify-between gap-4">
+        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <aside className="rounded-[28px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[var(--theme-shadow-card)]">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
-                  Add Dish
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                  Menu items
                 </p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900">Create a new menu item</h2>
+                <p className="mt-1 text-xs font-medium text-[var(--theme-muted)]">
+                  {dishes.length} dish{dishes.length === 1 ? '' : 'es'} added
+                </p>
               </div>
-              <div className="hidden rounded-2xl bg-[var(--theme-accent-soft)] p-3 text-[var(--theme-accent)] sm:block">
-                <UtensilsCrossed className="h-6 w-6" />
-              </div>
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
+                <UtensilsCrossed size={18} />
+              </span>
             </div>
 
-            <form className="mt-6 grid gap-5" onSubmit={handleSubmit}>
-              <div className="grid gap-5 md:grid-cols-2">
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">Dish name</span>
-                  <input
-                    type="text"
-                    value={menuForm.dishName}
-                    onChange={updateField('dishName')}
-                    placeholder="Ex. Rajma Chawal"
-                    required
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
+            <div className="mt-4 grid gap-3">
+              {dishes.length ? (
+                dishes.map((dish) => (
+                  <DishPreview
+                    key={dish.id}
+                    dish={dish}
+                    selected={dish.id === selectedDish?.id}
+                    onClick={() => setSelectedId(dish.id)}
+                    onRemove={() => removeDish(dish.id)}
                   />
-                </label>
-
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">Category</span>
-                  <div className="relative">
-                    <select
-                      value={menuForm.category}
-                      onChange={updateField('category')}
-                      className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
-                    >
-                      {categoryOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  </div>
-                </label>
-
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">Price</span>
-                  <div className="relative">
-                    <IndianRupee className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="number"
-                      min="0"
-                      value={menuForm.price}
-                      onChange={updateField('price')}
-                      placeholder="180"
-                      required
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
-                    />
-                  </div>
-                </label>
-
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">Prep time</span>
-                  <div className="relative">
-                    <Clock3 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="number"
-                      min="5"
-                      value={menuForm.prepTime}
-                      onChange={updateField('prepTime')}
-                      placeholder="25"
-                      required
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
-                    />
-                  </div>
-                </label>
-              </div>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-semibold text-slate-700">Description</span>
-                <textarea
-                  rows="4"
-                  value={menuForm.description}
-                  onChange={updateField('description')}
-                  placeholder="Write short details about ingredients, taste, portion size or serving style..."
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
-                />
-              </label>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">Spice level</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {spiceLevels.map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        onClick={() => setMenuForm((prev) => ({ ...prev, spiceLevel: level }))}
-                        className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                          menuForm.spiceLevel === level
-                            ? 'bg-[var(--theme-accent)] text-white shadow-[0_10px_24px_rgba(249,115,22,0.24)]'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
+                ))
+              ) : (
+                <div className="rounded-[22px] border border-dashed border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]/45 p-5 text-center">
+                  <p className="text-sm font-semibold text-[var(--theme-text)]">No dishes yet</p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--theme-muted)]">Add your first dish to start building the menu.</p>
                 </div>
-
-                <div className="grid gap-3">
-                  <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Vegan className="h-5 w-5 text-emerald-600" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">Vegetarian</p>
-                        <p className="text-xs text-slate-500">Mark dish as veg</p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={menuForm.isVeg}
-                      onChange={updateField('isVeg')}
-                      className="h-4 w-4 accent-[var(--theme-accent)]"
-                    />
-                  </label>
-
-                  <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Soup className="h-5 w-5 text-[var(--theme-accent)]" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">Available today</p>
-                        <p className="text-xs text-slate-500">Show this dish to customers</p>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={menuForm.isAvailable}
-                      onChange={updateField('isAvailable')}
-                      className="h-4 w-4 accent-[var(--theme-accent)]"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-[var(--theme-accent)] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(249,115,22,0.26)] transition hover:-translate-y-0.5"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add dish to menu
-                </button>
-                <p className="text-sm text-slate-500">
-                  You can update pricing and availability later anytime.
-                </p>
-              </div>
-            </form>
-          </section>
-
-          <section className="rounded-[28px] bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-100 sm:p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
-                  Menu Preview
-                </p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900">Current menu items</h2>
-              </div>
-              <div className="rounded-2xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
-                {menuItems.filter((item) => item.isAvailable).length} live
-              </div>
+              )}
             </div>
+          </aside>
 
-            <div className="mt-6 space-y-4">
-              {menuItems.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-5 transition hover:border-[var(--theme-accent)]/30 hover:bg-white"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+          <section className="rounded-[28px] border border-[var(--theme-chip-border)] bg-white p-4 shadow-[var(--theme-shadow-card)] sm:p-5">
+            {selectedDish ? (
+              <div className="grid gap-5">
+                <div className="flex flex-col gap-3 rounded-[24px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(135deg,#fffaf4,#ffffff)] p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-[var(--theme-chip-border)] bg-white text-[var(--theme-accent)] shadow-[var(--theme-shadow-soft)]">
+                      <ImagePlus size={22} />
+                    </div>
                     <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-lg font-bold text-slate-900">{item.dishName}</h3>
-                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-                          {item.category}
-                        </span>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            item.isVeg
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-rose-100 text-rose-700'
-                          }`}
-                        >
-                          {item.isVeg ? 'Veg' : 'Non-Veg'}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                        <span className="inline-flex items-center gap-1.5">
-                          <IndianRupee className="h-4 w-4" />
-                          {item.price}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <Clock3 className="h-4 w-4" />
-                          {item.prepTime} mins
-                        </span>
-                        <span className="rounded-full bg-[var(--theme-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--theme-accent)]">
-                          {item.spiceLevel}
-                        </span>
-                      </div>
+                      <p className="text-sm font-semibold text-[var(--theme-text)]">Dish image</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--theme-muted)]">
+                        Upload your own image or generate an AI dish image later.
+                      </p>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleAvailability(item.id)}
-                      className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
-                        item.isAvailable
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                      }`}
-                    >
-                      {item.isAvailable ? 'Available' : 'Unavailable'}
-                    </button>
                   </div>
-                </article>
-              ))}
-            </div>
+                  <div className="flex flex-wrap gap-2">
+                    <ToggleChip active={selectedDish.imageMode === 'upload'} onClick={() => updateDish('imageMode', 'upload')}>
+                      Upload
+                    </ToggleChip>
+                    <ToggleChip active={selectedDish.imageMode === 'ai'} onClick={() => updateDish('imageMode', 'ai')}>
+                      <span className="inline-flex items-center gap-1.5"><Sparkles size={12} /> AI image</span>
+                    </ToggleChip>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Dish name</span>
+                    <input className={fieldCls} value={selectedDish.name} onChange={(event) => updateDish('name', event.target.value)} placeholder="Paneer thali" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Price</span>
+                    <div className="theme-input flex min-h-11 items-center gap-2 rounded-2xl px-4 py-3">
+                      <IndianRupee size={15} className="text-[var(--theme-accent)]" />
+                      <input className="w-full bg-transparent text-sm font-medium outline-none" value={selectedDish.price} onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))} placeholder="149" />
+                    </div>
+                  </label>
+                  <label className="grid gap-2 md:col-span-2">
+                    <span className={labelCls}>Description</span>
+                    <textarea className={`${fieldCls} min-h-24 resize-none`} value={selectedDish.description} onChange={(event) => updateDish('description', event.target.value)} placeholder="Tell passengers what makes this dish special." />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Category</span>
+                    <select className={fieldCls} value={selectedDish.category} onChange={(event) => updateDish('category', event.target.value)}>
+                      {categories.map((item) => <option key={item}>{item}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Preparation time</span>
+                    <div className="theme-input flex min-h-11 items-center gap-2 rounded-2xl px-4 py-3">
+                      <Clock3 size={15} className="text-[var(--theme-accent)]" />
+                      <input className="w-full bg-transparent text-sm font-medium outline-none" value={selectedDish.prepTime} onChange={(event) => updateDish('prepTime', event.target.value.replace(/\D/g, ''))} placeholder="20" />
+                      <span className="text-xs font-semibold text-[var(--theme-muted)]">min</span>
+                    </div>
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Serving size</span>
+                    <input className={fieldCls} value={selectedDish.servingSize} onChange={(event) => updateDish('servingSize', event.target.value)} placeholder="1 person" />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className={labelCls}>Add-ons</span>
+                    <input className={fieldCls} value={selectedDish.addOns} onChange={(event) => updateDish('addOns', event.target.value)} placeholder="Extra roti, curd" />
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[22px] border border-[rgba(249,115,22,0.16)] bg-[#fffdfa] p-4">
+                    <p className={labelCls}>Spice level</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {spiceLevels.map((level) => (
+                        <ToggleChip key={level} active={selectedDish.spiceLevel === level} onClick={() => updateDish('spiceLevel', level)}>
+                          {level}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-[rgba(249,115,22,0.16)] bg-[#fffdfa] p-4">
+                    <p className={labelCls}>Availability</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ToggleChip active={selectedDish.available} onClick={() => updateDish('available', true)}>Available</ToggleChip>
+                      <ToggleChip active={!selectedDish.available} onClick={() => updateDish('available', false)}>Paused</ToggleChip>
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-[rgba(249,115,22,0.16)] bg-[#fffdfa] p-4">
+                    <p className={`${labelCls} inline-flex items-center gap-2`}><Tags size={13} /> Tags</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {tagOptions.map((tag) => (
+                        <ToggleChip key={tag} active={selectedDish.tags.includes(tag)} onClick={() => toggleArrayValue('tags', tag)}>
+                          {tag}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-[rgba(249,115,22,0.16)] bg-[#fffdfa] p-4">
+                    <p className={labelCls}>Station availability</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {stationOptions.map((station) => (
+                        <ToggleChip key={station} active={selectedDish.stations.includes(station)} onClick={() => toggleArrayValue('stations', station)}>
+                          {station}
+                        </ToggleChip>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 rounded-[22px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--theme-text)]">Menu draft is ready locally</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--theme-muted)]">Backend save can connect to this same structure when the API is ready.</p>
+                  </div>
+                  <button type="button" className="rounded-2xl bg-[var(--theme-accent)] px-5 py-3 text-sm font-semibold text-white shadow-[var(--theme-shadow-button)]">
+                    Save menu
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </section>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }

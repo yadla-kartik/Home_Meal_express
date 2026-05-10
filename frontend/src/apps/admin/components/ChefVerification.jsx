@@ -24,6 +24,64 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000'
 const surfaceShellCls =
   'rounded-[22px] border border-[var(--theme-chip-border)] bg-white shadow-[var(--theme-shadow-card)]'
 
+const normalizeApprovalStatus = (status) => (
+  ['pending', 'approved', 'all'].includes(status) ? status : 'pending'
+)
+
+const getApprovalModeMeta = (mode) => {
+  if (mode === 'all') {
+    return {
+      apiStatus: 'all',
+      title: 'All chefs',
+      countLabel: 'total',
+      emptyTitle: 'No chef profiles yet',
+      emptyText: 'Chef applications will appear here automatically.',
+      emptyDetailTitle: 'No chef profiles found',
+      emptyDetailText: 'Once chefs register, their verification status will appear here.',
+    }
+  }
+
+  if (mode === 'approved') {
+    return {
+      apiStatus: 'approved',
+      title: 'Verified chefs',
+      countLabel: 'verified',
+      emptyTitle: 'No verified chefs',
+      emptyText: 'Approved chef profiles will appear here automatically.',
+      emptyDetailTitle: 'No chef profiles verified',
+      emptyDetailText: 'Profiles approved by admin will appear in this list.',
+    }
+  }
+
+  return {
+    apiStatus: 'pending',
+    title: 'Pending chefs',
+    countLabel: 'waiting',
+    emptyTitle: 'No pending chefs',
+    emptyText: 'New chef applications will appear here automatically.',
+    emptyDetailTitle: 'No chef profiles pending',
+    emptyDetailText: 'Approved and rejected profiles are already out of this review list.',
+  }
+}
+
+const getStatusRank = (status) => {
+  if (status === 'pending') return 0
+  if (status === 'rejected') return 1
+  if (status === 'approved') return 2
+  return 3
+}
+
+const sortApprovalsForMode = (items, mode) => {
+  return [...items].sort((a, b) => {
+    if (mode === 'all') {
+      const statusDiff = getStatusRank(a.reviewStatus) - getStatusRank(b.reviewStatus)
+      if (statusDiff !== 0) return statusDiff
+    }
+
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  })
+}
+
 const formatDate = (value) => {
   if (!value) return 'Just now'
   return new Date(value).toLocaleString('en-IN', {
@@ -48,15 +106,32 @@ const mergeApprovals = (current, incoming) => {
   )
 }
 
-function QueueItem({ approval, isSelected, onSelect }) {
+function QueueItem({ approval, isSelected, onSelect, mode }) {
+  const status = approval.reviewStatus || 'pending'
+  const statusLabel = status === 'approved' ? 'Verified' : status === 'rejected' ? 'Rejected' : 'Pending'
+  const tone = mode === 'pending' ? 'orange' : status === 'approved' ? 'green' : 'red'
+  const selectedCls = {
+    orange: 'border-[rgba(249,115,22,0.34)] bg-[linear-gradient(180deg,#fff9f4_0%,#ffeddc_58%,#ffe4cb_100%)] shadow-[0_16px_32px_rgba(249,115,22,0.14)]',
+    green: 'border-emerald-200 bg-[linear-gradient(180deg,#f0fdf4_0%,#dcfce7_100%)] shadow-[0_16px_32px_rgba(16,185,129,0.12)]',
+    red: 'border-red-200 bg-[linear-gradient(180deg,#fff7f7_0%,#fee2e2_100%)] shadow-[0_16px_32px_rgba(220,38,38,0.10)]',
+  }[tone]
+  const idleCls = {
+    orange: 'border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5',
+    green: 'border-emerald-100 bg-[linear-gradient(180deg,#ffffff,#f5fff9)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5',
+    red: 'border-red-100 bg-[linear-gradient(180deg,#ffffff,#fff7f7)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5',
+  }[tone]
+  const badgeCls = {
+    orange: `border-[rgba(249,115,22,0.18)] text-[var(--theme-accent)] ${isSelected ? 'bg-white' : 'bg-[#fff7ef]'}`,
+    green: `border-emerald-200 text-emerald-700 ${isSelected ? 'bg-white' : 'bg-emerald-50'}`,
+    red: `border-red-200 text-red-600 ${isSelected ? 'bg-white' : 'bg-red-50'}`,
+  }[tone]
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full rounded-[20px] border px-4 py-4 text-left transition ${
-        isSelected
-          ? 'border-[rgba(249,115,22,0.34)] bg-[linear-gradient(180deg,#fff9f4_0%,#ffeddc_58%,#ffe4cb_100%)] shadow-[0_16px_32px_rgba(249,115,22,0.14)]'
-          : 'border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] shadow-[0_8px_18px_rgba(15,23,42,0.04)] hover:-translate-y-0.5'
+      className={`w-full rounded-[20px] border px-4 py-4 text-left transition duration-150 ease-out ${
+        isSelected ? selectedCls : idleCls
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -67,11 +142,9 @@ function QueueItem({ approval, isSelected, onSelect }) {
           </p>
         </div>
         <span
-          className={`rounded-full border border-[rgba(249,115,22,0.18)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-accent)] ${
-            isSelected ? 'bg-white' : 'bg-[#fff7ef]'
-          }`}
+          className={`rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${badgeCls}`}
         >
-          Pending
+          {statusLabel}
         </span>
       </div>
 
@@ -89,12 +162,12 @@ function QueueItem({ approval, isSelected, onSelect }) {
   )
 }
 
-function DetailPill({ icon: Icon, label, value }) {
+function DetailPill({ icon, label, value }) {
   return (
     <div className="rounded-[14px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] px-3 py-3">
       <div className="flex items-center gap-2 text-[var(--theme-accent)]">
-        <Icon size={13} />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.18em]">{label}</p>
+        {React.createElement(icon, { size: 13 })}
+        <p className="text-[9px] font-semibold uppercase tracking-[0.12em]">{label}</p>
       </div>
       <p className="mt-2 text-[13px] font-semibold text-[var(--theme-text)]">{value}</p>
     </div>
@@ -116,7 +189,7 @@ function ImageCard({ label, imagePath, alt, onOpen }) {
     <div className="rounded-[16px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-3 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)]">
             {label}
           </p>
           <p className="mt-1 truncate text-[12px] font-semibold text-[var(--theme-text)]">
@@ -145,11 +218,11 @@ function ImageCard({ label, imagePath, alt, onOpen }) {
           <img
             src={imageUrl}
             alt={alt}
-            className="h-full w-full cursor-pointer object-contain bg-[#fffdfa] p-1 transition duration-300 group-hover:scale-[1.02]"
+            className="h-full w-full cursor-pointer object-contain bg-[#fffdfa] p-1 transition duration-150 ease-out group-hover:scale-[1.015]"
           />
 
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_34%,rgba(15,23,42,0.06)_76%,rgba(15,23,42,0.24)_100%)] opacity-0 transition duration-300 group-hover:opacity-100" />
-          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[11px] font-semibold text-[var(--theme-text)] shadow-[0_10px_24px_rgba(15,23,42,0.16)] opacity-0 transition duration-300 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_34%,rgba(15,23,42,0.06)_76%,rgba(15,23,42,0.24)_100%)] opacity-0 transition duration-150 ease-out group-hover:opacity-100" />
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[11px] font-semibold text-[var(--theme-text)] shadow-[0_10px_24px_rgba(15,23,42,0.16)] opacity-0 transition duration-150 ease-out group-hover:opacity-100">
             <ExternalLink size={12} />
             Open
           </span>
@@ -159,7 +232,9 @@ function ImageCard({ label, imagePath, alt, onOpen }) {
   )
 }
 
-function ChefVerification({ onBack }) {
+function ChefVerification({ onBack, approvalStatus = 'pending' }) {
+  const approvalMode = normalizeApprovalStatus(approvalStatus)
+  const modeMeta = getApprovalModeMeta(approvalMode)
   const [approvals, setApprovals] = React.useState([])
   const [selectedId, setSelectedId] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(true)
@@ -173,19 +248,19 @@ function ChefVerification({ onBack }) {
     let isMounted = true
 
     const loadApprovals = async () => {
-      const res = await getChefApprovals('pending')
+      setIsLoading(true)
+      const res = await getChefApprovals(modeMeta.apiStatus)
       if (!isMounted) return
 
       const nextApprovals = Array.isArray(res?.approvals) ? res.approvals : []
-      setApprovals((prev) => {
-        const mergedApprovals = mergeApprovals(prev, nextApprovals)
-        setSelectedId((selectedPrev) => {
-          if (selectedPrev && mergedApprovals.some((item) => item.id === selectedPrev)) {
-            return selectedPrev
-          }
-          return mergedApprovals[0]?.id || ''
-        })
-        return mergedApprovals
+      const sortedApprovals = sortApprovalsForMode(nextApprovals, approvalMode)
+
+      setApprovals(sortedApprovals)
+      setSelectedId((selectedPrev) => {
+        if (selectedPrev && sortedApprovals.some((item) => item.id === selectedPrev)) {
+          return selectedPrev
+        }
+        return sortedApprovals[0]?.id || ''
       })
       setIsLoading(false)
     }
@@ -195,7 +270,7 @@ function ChefVerification({ onBack }) {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [approvalMode, modeMeta.apiStatus])
 
   React.useEffect(() => {
     const socket = getAdminSocket()
@@ -211,12 +286,24 @@ function ChefVerification({ onBack }) {
     }
 
     const handleCreated = (approval) => {
-      setApprovals((prev) => mergeApprovals(prev, [approval]))
+      if (approvalMode === 'approved') return
+
+      setApprovals((prev) => sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode))
       setSelectedId((prev) => prev || approval.id)
     }
 
     const handleUpdated = (approval) => {
-      setApprovals((prev) => prev.filter((item) => item.id !== approval.id))
+      setApprovals((prev) => {
+        if (approvalMode === 'all') {
+          return sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode)
+        }
+
+        if (approvalMode === 'approved' && approval.reviewStatus === 'approved') {
+          return sortApprovalsForMode(mergeApprovals(prev, [approval]), approvalMode)
+        }
+
+        return prev.filter((item) => item.id !== approval.id)
+      })
       setSelectedId((prev) => {
         if (prev !== approval.id) return prev
         return ''
@@ -232,7 +319,7 @@ function ChefVerification({ onBack }) {
       socket.off('chef:approval-updated', handleUpdated)
       socket.disconnect()
     }
-  }, [])
+  }, [approvalMode])
 
   React.useEffect(() => {
     if (!approvals.length) {
@@ -255,7 +342,7 @@ function ChefVerification({ onBack }) {
   }
 
   const handleApprove = async () => {
-    if (!selectedApproval || isActing) return
+    if (!selectedApproval || selectedApproval.reviewStatus !== 'pending' || isActing) return
 
     setIsActing('approve')
     const response = await approveChefApproval(selectedApproval.id)
@@ -267,7 +354,7 @@ function ChefVerification({ onBack }) {
   }
 
   const handleRejectSubmit = async () => {
-    if (!selectedApproval || isActing) return
+    if (!selectedApproval || selectedApproval.reviewStatus !== 'pending' || isActing) return
 
     const trimmedReason = rejectionReason.trim()
     if (!trimmedReason) {
@@ -335,7 +422,7 @@ function ChefVerification({ onBack }) {
             color: 'var(--theme-muted)',
             marginTop: '2px',
             fontWeight: 500,
-          }}>Review and approve pending chef registrations</p>
+          }}>{approvalMode === 'all' ? 'Review all chef registrations by status' : approvalMode === 'approved' ? 'Browse approved chef registrations' : 'Review and approve pending chef registrations'}</p>
         </div>
       </div>
 
@@ -343,10 +430,10 @@ function ChefVerification({ onBack }) {
         <div className={`${surfaceShellCls} h-fit p-0`}>
           <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">
-              Pending chefs
+              {modeMeta.title}
             </p>
             <span className="rounded-full border border-[rgba(249,115,22,0.16)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[11px] font-semibold text-[var(--theme-accent)]">
-              {approvals.length} waiting
+              {approvals.length} {modeMeta.countLabel}
             </span>
           </div>
 
@@ -359,13 +446,14 @@ function ChefVerification({ onBack }) {
                   approval={approval}
                   isSelected={selectedApproval?.id === approval.id}
                   onSelect={() => setSelectedId(approval.id)}
+                  mode={approvalMode}
                 />
               ))
             ) : (
               <div className="rounded-[16px] border border-[rgba(249,115,22,0.16)] bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-5 text-center shadow-[var(--theme-shadow-soft)]">
-                <p className="text-base font-semibold text-[var(--theme-text)]">No pending chef approvals</p>
-                <p className="mt-2 text-sm text-[var(--theme-muted)]">
-                  New chef registration requests will appear here automatically.
+                <p className="text-[14px] font-semibold text-[var(--theme-text)]">{modeMeta.emptyTitle}</p>
+                <p className="mt-2 text-[12px] leading-5 text-[var(--theme-muted)]">
+                  {modeMeta.emptyText}
                 </p>
               </div>
             )}
@@ -391,30 +479,41 @@ function ChefVerification({ onBack }) {
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRejectError('')
-                        setRejectionReason('')
-                        setIsRejectModalOpen(true)
-                      }}
-                      disabled={Boolean(isActing)}
-                      className="inline-flex items-center gap-1.5 rounded-2xl border border-[#fecaca] bg-white px-4 py-2.5 text-[14px] font-semibold text-[#dc2626] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      <XCircle size={14} />
-                      Reject
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleApprove}
-                      disabled={Boolean(isActing)}
-                      className="inline-flex items-center gap-1.5 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-[11px] font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      <CheckCircle size={14} />
-                      {isActing === 'approve' ? 'Approving...' : 'Approve'}
-                    </button>
-                  </div>
+                  {selectedApproval.reviewStatus === 'pending' ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRejectError('')
+                          setRejectionReason('')
+                          setIsRejectModalOpen(true)
+                        }}
+                        disabled={Boolean(isActing)}
+                        className="inline-flex items-center gap-1.5 rounded-2xl border border-[#fecaca] bg-white px-4 py-2.5 text-[14px] font-semibold text-[#dc2626] transition hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <XCircle size={14} />
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        disabled={Boolean(isActing)}
+                        className="inline-flex items-center gap-1.5 rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-2.5 text-[11px] font-semibold text-white shadow-[var(--theme-shadow-button)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <CheckCircle size={14} />
+                        {isActing === 'approve' ? 'Approving...' : 'Approve'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.12em] ${
+                      selectedApproval.reviewStatus === 'approved'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-red-200 bg-red-50 text-red-600'
+                    }`}>
+                      {selectedApproval.reviewStatus === 'approved' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                      {selectedApproval.reviewStatus === 'approved' ? 'Verified' : 'Rejected'}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -476,9 +575,9 @@ function ChefVerification({ onBack }) {
           ) : (
             <div className={`${surfaceShellCls} flex min-h-[420px] items-center justify-center p-6 text-center`}>
               <div>
-                <p className="text-xl font-semibold text-[var(--theme-text)]">Queue is clear right now</p>
-                <p className="mt-2 text-sm text-[var(--theme-muted)]">
-                  As soon as a chef submits registration, this panel will update in real time.
+                <p className="text-[16px] font-semibold text-[var(--theme-text)]">{modeMeta.emptyDetailTitle}</p>
+                <p className="mt-2 text-sm font-medium text-[var(--theme-muted)]">
+                  {modeMeta.emptyDetailText}
                 </p>
               </div>
             </div>

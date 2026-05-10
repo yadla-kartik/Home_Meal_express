@@ -106,11 +106,11 @@ function SuperAdminDashboard() {
 
           <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+              <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-[11px] font-semibold uppercase tracking-[0.14em] px-3 py-1 rounded-full mb-4">
                 <ShieldCheck size={11} />
                 Super Admin Panel
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
                 Admin Management
               </h1>
               <p className="text-white/65 mt-2 text-sm font-medium">
@@ -120,7 +120,7 @@ function SuperAdminDashboard() {
 
             <button
               onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-2.5 bg-white text-[var(--theme-accent)] font-extrabold text-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-[0.98] w-fit shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-2.5 bg-white text-[var(--theme-accent)] font-semibold text-sm px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150 active:scale-[0.98] w-fit shrink-0 cursor-pointer"
             >
               <UserPlus size={16} />
               Add New Admin
@@ -145,20 +145,20 @@ function SuperAdminDashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25, delay: 0.13 + i * 0.07 }}
-              className="theme-card rounded-2xl px-6 py-5 border border-[color:var(--theme-border)] hover:border-[var(--theme-accent)] hover:shadow-md transition-all group overflow-hidden relative"
+              className="theme-card rounded-2xl px-6 py-5 border border-[color:var(--theme-border)] hover:border-[var(--theme-accent)] hover:shadow-md transition-all duration-150 group overflow-hidden relative"
             >
               {/* ghost icon bg */}
               <div className="absolute -right-4 -bottom-4 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity text-[var(--theme-accent)]">
                 <div className="scale-[5] origin-bottom-right">{stat.icon}</div>
               </div>
               <div className="flex items-start justify-between mb-1">
-                <p className="text-xs font-extrabold uppercase tracking-widest text-[var(--theme-muted)]">{stat.label}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--theme-muted)]">{stat.label}</p>
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 text-[var(--theme-accent)]" style={{ background: 'var(--theme-accent-soft)' }}>
                   {stat.icon}
                 </div>
               </div>
               <div className="flex items-end gap-2">
-                <p className="text-3xl font-black" style={{ background: 'var(--theme-gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stat.value}</p>
+                <p className="text-3xl font-bold" style={{ background: 'var(--theme-gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{stat.value}</p>
                 {stat.dot && <span className="mb-1.5 h-2.5 w-2.5 rounded-full bg-emerald-500 shrink-0" />}
               </div>
               <p className="text-xs text-[var(--theme-muted)] font-semibold mt-2">{stat.sub}</p>
@@ -174,7 +174,7 @@ function SuperAdminDashboard() {
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-8 mt-2"
         >
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl sm:text-3xl font-black text-[var(--theme-text)] tracking-tight">All Admins</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[var(--theme-text)] tracking-tight">All Admins</h2>
             <span className="text-sm font-bold bg-[var(--theme-accent-soft)] text-[var(--theme-accent)] px-3 py-1 rounded-full">
               {filteredAdmins.length}
             </span>

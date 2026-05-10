@@ -119,7 +119,7 @@ function SuperAdminNavbar({ onAddAdmin }) {
                     <Crown size={20} />
                   </span>
                   <div className="overflow-hidden">
-                    <p className="truncate text-sm font-black text-[var(--theme-text)]">
+                    <p className="truncate text-sm font-semibold text-[var(--theme-text)]">
                       System Overseer
                     </p>
                     <p className="truncate mt-1 text-xs text-[var(--theme-muted)]">

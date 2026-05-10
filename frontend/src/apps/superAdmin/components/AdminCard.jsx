@@ -38,7 +38,7 @@ function AdminCard({ admin, onRemove }) {
         padding: '20px',
         position: 'relative',
         overflow: 'hidden',
-        transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'all 0.16s ease-out',
         boxShadow: '0 4px 24px rgba(15, 23, 42, 0.06)',
       }}
       onMouseEnter={e => {
@@ -68,7 +68,7 @@ function AdminCard({ admin, onRemove }) {
           }}>
             <span style={{
               fontSize: '15px',
-              fontWeight: 900,
+              fontWeight: 800,
               color: '#fff',
               letterSpacing: '-0.02em',
             }}>
@@ -78,7 +78,7 @@ function AdminCard({ admin, onRemove }) {
           <div>
             <h4 style={{
               fontSize: '15px',
-              fontWeight: 800,
+              fontWeight: 700,
               color: 'var(--theme-text-strong)',
               lineHeight: 1.2,
               margin: 0,
@@ -91,9 +91,9 @@ function AdminCard({ admin, onRemove }) {
               gap: '4px',
               marginTop: '4px',
               fontSize: '10px',
-              fontWeight: 700,
+              fontWeight: 600,
               textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.06em',
               color: 'var(--theme-accent)',
             }}>
               <Zap size={9} fill="currentColor" /> Admin Access
@@ -112,7 +112,7 @@ function AdminCard({ admin, onRemove }) {
             border: 'none',
             background: showOptions ? 'var(--theme-accent-soft)' : 'transparent',
             color: showOptions ? 'var(--theme-accent)' : 'var(--theme-muted)',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'all 0.16s ease-out',
             flexShrink: 0,
           }}
           onMouseEnter={e => {
@@ -190,7 +190,7 @@ function AdminCard({ admin, onRemove }) {
           <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{
               fontSize: '10px',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--theme-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
@@ -199,7 +199,7 @@ function AdminCard({ admin, onRemove }) {
             }}>Admin Code</p>
             <p style={{
               fontSize: '13px',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--theme-text-strong)',
               margin: '3px 0 0 0',
               lineHeight: 1,
@@ -232,7 +232,7 @@ function AdminCard({ admin, onRemove }) {
           <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{
               fontSize: '10px',
-              fontWeight: 700,
+              fontWeight: 600,
               color: 'var(--theme-muted)',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',

@@ -118,15 +118,15 @@ function AddAdminModal({ isOpen, onClose, onAdd }) {
                     <Sparkles size={11} style={{ color: 'var(--theme-accent)' }} />
                     <span style={{
                       fontSize: '10px',
-                      fontWeight: 800,
+                      fontWeight: 600,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.12em',
+                      letterSpacing: '0.08em',
                       color: 'var(--theme-accent)',
                     }}>New Admin</span>
                   </div>
                   <h2 style={{
                     fontSize: '22px',
-                    fontWeight: 900,
+                    fontWeight: 800,
                     color: 'var(--theme-text)',
                     letterSpacing: '-0.02em',
                     lineHeight: 1.2,
@@ -256,7 +256,7 @@ function AddAdminModal({ isOpen, onClose, onAdd }) {
                         <Phone size={14} />
                         <span style={{
                           fontSize: '12px',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           color: 'inherit',
                           opacity: 0.7,
                         }}>+91</span>
@@ -345,7 +345,7 @@ function AddAdminModal({ isOpen, onClose, onAdd }) {
                     height: '50px',
                     borderRadius: '16px',
                     border: 'none',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     fontSize: '14px',
                     letterSpacing: '0.01em',
                     display: 'flex',

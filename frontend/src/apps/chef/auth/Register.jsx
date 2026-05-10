@@ -12,7 +12,7 @@ const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const PAGE_FIELDS = {
   1: ['chefName', 'kitchenName', 'phone', 'email', 'cuisine', 'speciality', 'experience', 'maxOrders'],
   2: ['addressLine', 'city', 'state', 'zip', 'nearestStation', 'prepTime', 'openTime', 'closeTime', 'availableDays'],
-  3: ['idType', 'idNumber', 'idProof', 'chefPhoto', 'kitchenPhoto', 'upiOrAccount', 'accountHolder', 'bankName', 'ifscCode'],
+  3: ['idType', 'idNumber', 'idProof', 'chefPhoto', 'kitchenPhoto', 'bankName', 'accountHolder', 'upiOrAccount', 'ifscCode'],
 }
 
 const FILE_LIMITS = {
@@ -45,10 +45,47 @@ const digitsOnly = /^\d+$/
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const textPattern = /^[A-Za-z ]+$/
 const ifscPattern = /^[A-Z]{4}0\d{6}$/
-const upiPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z]+$/
 const accountNumberPattern = /^\d+$/
 const aadhaarPattern = /^\d{12}$/
 const panPattern = /^[A-Z]{5}\d{4}[A-Z]$/
+
+const BANK_ACCOUNT_RULES = [
+  { aliases: ['sbi', 'state bank of india'], label: 'SBI', lengths: [10, 11] },
+  { aliases: ['hdfc', 'hdfc bank'], label: 'HDFC Bank', lengths: [14] },
+  { aliases: ['icici', 'icici bank'], label: 'ICICI Bank', lengths: [12] },
+  { aliases: ['axis', 'axis bank'], label: 'Axis Bank', lengths: [15] },
+  { aliases: ['kotak', 'kotak mahindra', 'kotak mahindra bank'], label: 'Kotak Mahindra Bank', lengths: [10] },
+  { aliases: ['pnb', 'punjab national bank'], label: 'Punjab National Bank', lengths: [16] },
+  { aliases: ['bob', 'bank of baroda'], label: 'Bank of Baroda', lengths: [14] },
+  { aliases: ['canara', 'canara bank'], label: 'Canara Bank', lengths: [13] },
+  { aliases: ['union', 'union bank', 'union bank of india'], label: 'Union Bank of India', lengths: [15] },
+  { aliases: ['boi', 'bank of india'], label: 'Bank of India', lengths: [15] },
+]
+
+const getBankAccountRule = (bankName = '') => {
+  const normalized = bankName.trim().toLowerCase().replace(/\s+/g, ' ')
+  return BANK_ACCOUNT_RULES.find((rule) => rule.aliases.includes(normalized))
+}
+
+const formatAllowedLengths = (lengths) =>
+  lengths.length === 1 ? `${lengths[0]}` : lengths.join(' or ')
+
+const validateBankAccountNumber = (accountNumber, bankName) => {
+  const trimmed = typeof accountNumber === 'string' ? accountNumber.trim() : ''
+  if (!trimmed) return 'Bank Account Number is required.'
+  if (!accountNumberPattern.test(trimmed)) return 'Bank Account Number can contain digits only.'
+
+  const bankRule = getBankAccountRule(bankName)
+  if (bankRule && !bankRule.lengths.includes(trimmed.length)) {
+    return `${bankRule.label} account number must be ${formatAllowedLengths(bankRule.lengths)} digits.`
+  }
+
+  if (!bankRule && (trimmed.length < 9 || trimmed.length > 18)) {
+    return 'Bank Account Number must be between 9 and 18 digits.'
+  }
+
+  return ''
+}
 
 const formatAadhaarNumber = (value) =>
   value
@@ -240,9 +277,7 @@ function Register() {
       case 'kitchenPhoto':
         return validateFile(field, form[field])
       case 'upiOrAccount':
-        if (!trimmed) return 'UPI ID / Account Number is required.'
-        if (!upiPattern.test(trimmed) && !accountNumberPattern.test(trimmed)) return 'Enter a valid UPI ID or numeric account number.'
-        return ''
+        return validateBankAccountNumber(trimmed, form.bankName)
       case 'accountHolder':
         if (!trimmed) return 'Account Holder Name is required.'
         if (!onlyLettersAndSpaces.test(trimmed)) return 'Account Holder Name can contain alphabets only.'
@@ -284,6 +319,7 @@ function Register() {
 
     let nextValue = value
     if (['phone', 'zip', 'experience', 'maxOrders', 'prepTime'].includes(key)) nextValue = value.replace(/\D/g, '')
+    if (key === 'upiOrAccount') nextValue = value.replace(/\D/g, '')
     if (key === 'idNumber' && form.idType === 'aadhaar') nextValue = value.replace(/\D/g, '')
     if (key === 'ifscCode') nextValue = value.toUpperCase()
     if (key === 'idNumber' && form.idType === 'pan') nextValue = value.toUpperCase()
@@ -292,6 +328,12 @@ function Register() {
     const message = validateField(key, nextValue)
     if (message) setFieldError(key, message)
     else clearFieldError(key)
+
+    if (key === 'bankName' && form.upiOrAccount) {
+      const accountMessage = validateBankAccountNumber(form.upiOrAccount, nextValue)
+      if (accountMessage) setFieldError('upiOrAccount', accountMessage)
+      else clearFieldError('upiOrAccount')
+    }
   }
 
   const toggleDay = (day) => {
@@ -549,11 +591,11 @@ function Register() {
             <p className={sectionDividerCls}>Payment Details</p>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Bank Account / UPI ID <input className={inputCls} value={form.upiOrAccount} onChange={update('upiOrAccount')} placeholder="UPI or Account number" /> {errors.upiOrAccount && <span className={errorCls}>{errors.upiOrAccount}</span>}</label>
+              <label className={labelCls}>Bank Name <input className={inputCls} value={form.bankName} onChange={update('bankName')} placeholder="e.g., SBI, HDFC, Kotak" /> {errors.bankName && <span className={errorCls}>{errors.bankName}</span>}</label>
               <label className={labelCls}>Account Holder Name <input className={inputCls} value={form.accountHolder} onChange={update('accountHolder')} placeholder="As per bank records" /> {errors.accountHolder && <span className={errorCls}>{errors.accountHolder}</span>}</label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Bank Name <input className={inputCls} value={form.bankName} onChange={update('bankName')} placeholder="e.g., SBI, HDFC, Kotak" /> {errors.bankName && <span className={errorCls}>{errors.bankName}</span>}</label>
+              <label className={labelCls}>Bank Account Number <input className={inputCls} value={form.upiOrAccount} onChange={update('upiOrAccount')} placeholder="Enter bank account number" maxLength={18} /> {errors.upiOrAccount && <span className={errorCls}>{errors.upiOrAccount}</span>}</label>
               <label className={labelCls}>IFSC Code <input className={`${inputCls} uppercase`} value={form.ifscCode} onChange={update('ifscCode')} placeholder="e.g., SBIN0001234" /> {errors.ifscCode && <span className={errorCls}>{errors.ifscCode}</span>}</label>
             </div>
 

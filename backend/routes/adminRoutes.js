@@ -8,6 +8,11 @@ const {
   approveChefApproval,
   rejectChefApproval,
 } = require('../controllers/adminApproval')
+const {
+  getDeliveryApprovals,
+  approveDeliveryApproval,
+  rejectDeliveryApproval,
+} = require('../controllers/deliveryApproval')
 
 const router = express.Router()
 
@@ -43,5 +48,8 @@ router.get('/dashboard', checkForUserAuth('adminToken'), (req, res) => {
 router.get('/chef-approvals', checkForUserAuth('adminToken'), getChefApprovals)
 router.patch('/chef-approvals/:id/approve', checkForUserAuth('adminToken'), approveChefApproval)
 router.patch('/chef-approvals/:id/reject', checkForUserAuth('adminToken'), rejectChefApproval)
+router.get('/delivery-approvals', checkForUserAuth('adminToken'), getDeliveryApprovals)
+router.patch('/delivery-approvals/:id/approve', checkForUserAuth('adminToken'), approveDeliveryApproval)
+router.patch('/delivery-approvals/:id/reject', checkForUserAuth('adminToken'), rejectDeliveryApproval)
 
 module.exports = router

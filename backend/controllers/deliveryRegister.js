@@ -1,6 +1,8 @@
 const deliveryAuth = require('../models/deliveryAuth')
 const deliveryRegister = require('../models/deliveryRegister')
 const { uploadImageBuffer } = require('../utils/cloudinary')
+const { emitToAdmins, emitToDelivery } = require('../socket')
+const { serializeDeliveryApproval } = require('../utils/deliveryApprovalPayload')
 
 const createDeliveryRegister = async (req, res) => {
   try {
@@ -101,6 +103,7 @@ const createDeliveryRegister = async (req, res) => {
       accountHolderName,
       status: 'pending',
       rejectionReason: '',
+      reviewedAt: null,
       isOnline: false,
     }
 
@@ -132,12 +135,20 @@ const createDeliveryRegister = async (req, res) => {
       { new: true, runValidators: true },
     )
 
+    const approvalRecord = await deliveryRegister
+      .findById(registration._id)
+      .populate('createdBy', 'name mobileNo isRegistered')
+    const approvalPayload = serializeDeliveryApproval(approvalRecord || registration)
+
+    emitToAdmins('delivery:approval-created', approvalPayload)
+    emitToDelivery(approvalPayload.deliveryBoy?.id, 'delivery:review-status', approvalPayload)
+
     return res.status(201).json({
       message: existingRegistration
         ? 'Delivery registration resubmitted successfully'
         : 'Delivery registered successfully',
       deliveryBoy: updatedDeliveryBoy,
-      registration,
+      registration: approvalPayload,
     })
   } catch (err) {
     if (err?.code === 11000) {
@@ -171,6 +182,7 @@ const getDeliveryReviewStatus = async (req, res) => {
       hasRegistration: true,
       status: registration.status || 'pending',
       rejectionReason: registration.rejectionReason || '',
+      isOnline: Boolean(registration.isOnline),
     })
   } catch (err) {
     console.error('Error occurred while getDeliveryReviewStatus in deliveryRegister controller:', err.message)

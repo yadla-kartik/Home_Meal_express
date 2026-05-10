@@ -124,10 +124,10 @@ export default function ChangePassword({
 
               {/* Headings */}
               <div className="text-center mb-8">
-                <div className="inline-flex items-center gap-1 mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--theme-accent)] bg-[var(--theme-accent-soft)] px-2.5 py-1 rounded-full">
+                <div className="inline-flex items-center gap-1 mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)] bg-[var(--theme-accent-soft)] px-2.5 py-1 rounded-full">
                   <ShieldCheck size={12} /> {isMandatory ? 'Mandatory Security Step' : 'Account Security'}
                 </div>
-                <h2 className="text-2xl sm:text-[26px] font-black text-[var(--theme-text-strong)] tracking-tight mb-2">
+                <h2 className="text-2xl sm:text-[26px] font-bold text-[var(--theme-text-strong)] tracking-tight mb-2">
                   Change Password
                 </h2>
                 <p className="text-[13px] text-[var(--theme-muted)] font-medium leading-relaxed">
@@ -250,7 +250,7 @@ export default function ChangePassword({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-2xl bg-[var(--theme-accent)] py-3.5 px-4 text-[15px] font-black text-white shadow-[0_8px_16px_rgba(249,115,22,0.2)] hover:bg-[#eaeaea] hover:shadow-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="w-full rounded-2xl bg-[var(--theme-accent)] py-3.5 px-4 text-[15px] font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.2)] hover:bg-[#eaeaea] hover:shadow-none transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
                   style={{
                     background: 'var(--theme-gradient-primary)'
                   }}

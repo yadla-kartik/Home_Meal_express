@@ -9,6 +9,44 @@ const { buildAuthCookieOptions } = require('../utils/authCookies')
 
 const CHEF_COOKIE_MAX_AGE = 1 * 24 * 60 * 60 * 1000
 
+const BANK_ACCOUNT_RULES = [
+    { aliases: ['sbi', 'state bank of india'], label: 'SBI', lengths: [10, 11] },
+    { aliases: ['hdfc', 'hdfc bank'], label: 'HDFC Bank', lengths: [14] },
+    { aliases: ['icici', 'icici bank'], label: 'ICICI Bank', lengths: [12] },
+    { aliases: ['axis', 'axis bank'], label: 'Axis Bank', lengths: [15] },
+    { aliases: ['kotak', 'kotak mahindra', 'kotak mahindra bank'], label: 'Kotak Mahindra Bank', lengths: [10] },
+    { aliases: ['pnb', 'punjab national bank'], label: 'Punjab National Bank', lengths: [16] },
+    { aliases: ['bob', 'bank of baroda'], label: 'Bank of Baroda', lengths: [14] },
+    { aliases: ['canara', 'canara bank'], label: 'Canara Bank', lengths: [13] },
+    { aliases: ['union', 'union bank', 'union bank of india'], label: 'Union Bank of India', lengths: [15] },
+    { aliases: ['boi', 'bank of india'], label: 'Bank of India', lengths: [15] },
+]
+
+const getBankAccountRule = (bankName = '') => {
+    const normalized = String(bankName).trim().toLowerCase().replace(/\s+/g, ' ')
+    return BANK_ACCOUNT_RULES.find((rule) => rule.aliases.includes(normalized))
+}
+
+const formatAllowedLengths = (lengths) => lengths.length === 1 ? `${lengths[0]}` : lengths.join(' or ')
+
+const validateBankAccountNumber = (accountNumber = '', bankName = '') => {
+    const normalizedAccountNumber = String(accountNumber).trim()
+
+    if (!normalizedAccountNumber) return 'Bank Account Number is required.'
+    if (!/^\d+$/.test(normalizedAccountNumber)) return 'Bank Account Number can contain digits only.'
+
+    const bankRule = getBankAccountRule(bankName)
+    if (bankRule && !bankRule.lengths.includes(normalizedAccountNumber.length)) {
+        return `${bankRule.label} account number must be ${formatAllowedLengths(bankRule.lengths)} digits.`
+    }
+
+    if (!bankRule && (normalizedAccountNumber.length < 9 || normalizedAccountNumber.length > 18)) {
+        return 'Bank Account Number must be between 9 and 18 digits.'
+    }
+
+    return ''
+}
+
 const createChefRegister = async (req, res) => {
     try {
         const chefId = req.user?.id
@@ -68,6 +106,28 @@ const createChefRegister = async (req, res) => {
             return res.status(400).json({ message: 'PAN must follow format: 5 letters, 4 digits, 1 letter.' })
         }
 
+        const normalizedAccountNumber = typeof upiOrAccount === 'string' ? upiOrAccount.trim() : ''
+        const normalizedAccountHolder = typeof accountHolder === 'string' ? accountHolder.trim() : ''
+        const normalizedBankName = typeof bankName === 'string' ? bankName.trim() : ''
+        const normalizedIfscCode = typeof ifscCode === 'string' ? ifscCode.trim().toUpperCase() : ''
+
+        if (!normalizedBankName) {
+            return res.status(400).json({ message: 'Bank Name is required.' })
+        }
+
+        if (!normalizedAccountHolder) {
+            return res.status(400).json({ message: 'Account Holder Name is required.' })
+        }
+
+        const accountNumberError = validateBankAccountNumber(normalizedAccountNumber, normalizedBankName)
+        if (accountNumberError) {
+            return res.status(400).json({ message: accountNumberError })
+        }
+
+        if (!/^[A-Z]{4}0\d{6}$/.test(normalizedIfscCode)) {
+            return res.status(400).json({ message: 'IFSC must follow format: 4 letters + 0 + 6 digits.' })
+        }
+
         const duplicateChef = await chefAuth.findOne({
             email,
             _id: { $ne: chefId },
@@ -120,10 +180,10 @@ const createChefRegister = async (req, res) => {
             idNumber: encryptField(normalizedIdNumber),
             chefPhoto: chefPhotoUrl,
             kitchenPhoto: kitchenPhotoUrl,
-            upiOrAccount: encryptField(upiOrAccount),
-            accountHolder: encryptField(accountHolder),
-            bankName: encryptField(bankName),
-            ifscCode: encryptField(ifscCode),
+            upiOrAccount: encryptField(normalizedAccountNumber),
+            accountHolder: encryptField(normalizedAccountHolder),
+            bankName: encryptField(normalizedBankName),
+            ifscCode: encryptField(normalizedIfscCode),
             isActive: false,
             reviewStatus: 'pending',
             reviewedAt: null,
