@@ -20,6 +20,8 @@ import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
 import { adminCookieCheck } from '../services/adminAuthService'
 import SuperAdminDashboard from './apps/superAdmin/SuperAdminDashboard'
+import PnrResultPage from './components/PnrResultPage'
+import ChefMenuPage from './components/ChefMenuPage'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -145,6 +147,8 @@ function App() {
         }
       />
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
+      <Route path="/pnr/:pnrNumber" element={<PnrResultPage />} />
+      <Route path="/station/:stationCode/chef/:chefId" element={<ChefMenuPage />} />
     </Routes>
   )
 }
