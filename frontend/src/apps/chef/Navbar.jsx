@@ -65,8 +65,8 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
   }
 
   const profileMenuItems = [
-    { label: 'Orders', hint: 'Track active meal requests and history' },
-    { label: 'Menu', hint: 'Manage dishes, pricing and availability' },
+    { label: 'Orders', hint: 'Track active meal requests and history', onClick: () => navigate('/chef/dashboard') },
+    { label: 'Menu', hint: 'Manage dishes, pricing and availability', onClick: () => navigate('/chef/menu') },
     { label: 'Settings', hint: 'Keep kitchen preferences and profile updated' },
   ]
 
@@ -213,6 +213,10 @@ function Navbar({ isRegistered = false, onRegisterClick }) {
                   <button
                     key={item.label}
                     type="button"
+                    onClick={() => {
+                      setIsProfileMenuOpen(false)
+                      item.onClick?.()
+                    }}
                     className="flex w-full items-start justify-between rounded-[18px] border border-transparent bg-white/78 px-4 py-3 text-left shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#fde7d2] hover:bg-[#fffaf5]"
                   >
                     <div>

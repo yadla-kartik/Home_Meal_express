@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
 import ChefVerificationWorkspace from './components/ChefVerificationWorkspace'
 import Popuplogin from './components/Popuplogin'
-import { chefCookieCheck, getChefReviewStatus } from '../../../services/chefAuthService'
+import { chefCookieCheck, getChefMenuDraft, getChefReviewStatus } from '../../../services/chefAuthService'
 import ChefVerifiedWorkspace from './components/ChefVerifiedWorkspace'
 import ChefRejectedWorkspace from './components/ChefRejectedWorkspace'
 import ChefRegisterWorkspace from './components/ChefRegisterWorkspace'
+import ChefLiveWorkspace from './components/ChefLiveWorkspace'
 import { getChefSocket } from '../../../services/socket'
 
 const CHEF_REGISTER_POPUP_DISMISSED_KEY = 'chef-register-popup-dismissed'
@@ -19,6 +20,7 @@ const chefDashboard = () => {
   const [reviewStatus, setReviewStatus] = useState('pending')
   const [rejectionReason, setRejectionReason] = useState('')
   const [chefId, setChefId] = useState('')
+  const [menuDishCount, setMenuDishCount] = useState(0)
   const lastRealtimeUpdateRef = useRef(0)
 
   useEffect(() => {
@@ -57,6 +59,15 @@ const chefDashboard = () => {
 
       setReviewStatus(reviewRes?.reviewStatus || 'pending')
       setRejectionReason(reviewRes?.rejectionReason || '')
+
+      if ((reviewRes?.reviewStatus || 'pending') === 'approved') {
+        const menuRes = await getChefMenuDraft()
+        if (!isMounted) return
+        const nextDishes = Array.isArray(menuRes?.menu?.dishes) ? menuRes.menu.dishes : []
+        setMenuDishCount(nextDishes.length)
+      } else {
+        setMenuDishCount(0)
+      }
     }
 
     syncChefState()
@@ -109,7 +120,7 @@ const chefDashboard = () => {
     }
 
     if (reviewStatus === 'approved') {
-      return <ChefVerifiedWorkspace />
+      return menuDishCount > 0 ? <ChefLiveWorkspace dishCount={menuDishCount} /> : <ChefVerifiedWorkspace />
     }
 
     if (reviewStatus === 'rejected') {
