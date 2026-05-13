@@ -25,6 +25,10 @@ import { adminCookieCheck } from '../services/adminAuthService'
 import SuperAdminDashboard from './apps/superAdmin/SuperAdminDashboard'
 import PnrResultPage from './components/PnrResultPage'
 import ChefMenuPage from './components/ChefMenuPage'
+import OrderCartPage from './components/OrderCartPage'
+import OrderBillingPage from './components/OrderBillingPage'
+import OrderPaymentPage from './components/OrderPaymentPage'
+import OrderConfirmationPage from './components/OrderConfirmationPage'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -191,6 +195,10 @@ function App() {
       <Route path="/superadmin" element={<SuperAdminDashboard />} />
       <Route path="/pnr/:pnrNumber" element={<PnrResultPage />} />
       <Route path="/station/:stationCode/chef/:chefId" element={<ChefMenuPage />} />
+      <Route path="/station/:stationCode/chef/:chefId/cart" element={<OrderCartPage />} />
+      <Route path="/station/:stationCode/chef/:chefId/billing" element={<OrderBillingPage />} />
+      <Route path="/station/:stationCode/chef/:chefId/payment" element={<OrderPaymentPage />} />
+      <Route path="/station/:stationCode/chef/:chefId/bill" element={<OrderConfirmationPage />} />
     </Routes>
   )
 }

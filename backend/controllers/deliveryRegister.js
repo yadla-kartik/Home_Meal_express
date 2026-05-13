@@ -20,7 +20,6 @@ const createDeliveryRegister = async (req, res) => {
       email,
       idType,
       idNumber,
-      vehicleType,
       vehicleNumber,
       drivingLicenseNumber,
       address,
@@ -39,9 +38,13 @@ const createDeliveryRegister = async (req, res) => {
 
     const profilePhotoFile = req.files?.profilePhoto?.[0]
     const idProofImageFile = req.files?.idProofImage?.[0]
+    const drivingLicenseImageFile = req.files?.drivingLicenseImage?.[0]
+    const bikePhotoFile = req.files?.bikePhoto?.[0]
 
-    if (!profilePhotoFile || !idProofImageFile) {
-      return res.status(400).json({ message: 'Please upload both Profile Photo and ID Proof Image.' })
+    if (!profilePhotoFile || !idProofImageFile || !drivingLicenseImageFile || !bikePhotoFile) {
+      return res.status(400).json({
+        message: 'Please upload Profile Photo, ID Proof Image, Driving License Photo, and Bike Photo.',
+      })
     }
 
     const normalizedIdType = typeof idType === 'string' ? idType.trim().toLowerCase() : ''
@@ -73,9 +76,11 @@ const createDeliveryRegister = async (req, res) => {
       }
     }
 
-    const [profilePhotoUrl, idProofImageUrl] = await Promise.all([
+    const [profilePhotoUrl, idProofImageUrl, drivingLicenseImageUrl, bikePhotoUrl] = await Promise.all([
       uploadImageBuffer({ file: profilePhotoFile, folder: 'home-meal-express/delivery-register' }),
       uploadImageBuffer({ file: idProofImageFile, folder: 'home-meal-express/delivery-register' }),
+      uploadImageBuffer({ file: drivingLicenseImageFile, folder: 'home-meal-express/delivery-register' }),
+      uploadImageBuffer({ file: bikePhotoFile, folder: 'home-meal-express/delivery-register' }),
     ])
 
     const nextPayload = {
@@ -86,9 +91,10 @@ const createDeliveryRegister = async (req, res) => {
       idType: normalizedIdType,
       idNumber: normalizedIdNumber,
       idProofImage: idProofImageUrl,
-      vehicleType,
       vehicleNumber: normalizedVehicleNumber,
       drivingLicenseNumber: normalizedLicense,
+      drivingLicenseImage: drivingLicenseImageUrl,
+      bikePhoto: bikePhotoUrl,
       address,
       city,
       state,

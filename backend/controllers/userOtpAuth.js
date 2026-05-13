@@ -3,6 +3,7 @@ const user = require('../models/user')
 const userOtp = require('../models/userOtp')
 const { generateToken } = require('../utils/jwtAuth')
 const { buildAuthCookieOptions } = require('../utils/authCookies')
+const { buildDemoPnrSnapshot, isDemoPnrEnabled } = require('../utils/pnrDemoData')
 
 const MSG91_VERIFY_ACCESS_TOKEN_URL = 'https://control.msg91.com/api/v5/widget/verifyAccessToken'
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || process.env.MSG91_TOKEN_AUTH || ''
@@ -357,6 +358,14 @@ module.exports = {
           success: true,
           message: 'PNR details fetched successfully.',
           data: mapPnrData(pnr, liveResult),
+        })
+      }
+
+      if (isDemoPnrEnabled()) {
+        return res.status(200).json({
+          success: true,
+          message: 'Demo PNR details loaded because live lookup is unavailable.',
+          data: buildDemoPnrSnapshot(pnr),
         })
       }
 

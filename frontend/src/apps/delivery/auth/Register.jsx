@@ -10,7 +10,15 @@ import {
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 const PAGE_FIELDS = {
-  1: ['name', 'mobileNo', 'email', 'vehicleType', 'vehicleNumber', 'drivingLicenseNumber'],
+  1: [
+    'name',
+    'mobileNo',
+    'email',
+    'drivingLicenseNumber',
+    'drivingLicenseImage',
+    'vehicleNumber',
+    'bikePhoto',
+  ],
   2: ['address', 'city', 'state', 'pincode', 'nearestStation', 'availableDays', 'startTime', 'endTime'],
   3: ['profilePhoto', 'idType', 'idNumber', 'idProofImage', 'accountNumber', 'ifscCode', 'accountHolderName'],
 }
@@ -18,6 +26,8 @@ const PAGE_FIELDS = {
 const FILE_LIMITS = {
   profilePhoto: 3 * 1024 * 1024,
   idProofImage: 5 * 1024 * 1024,
+  drivingLicenseImage: 5 * 1024 * 1024,
+  bikePhoto: 5 * 1024 * 1024,
 }
 
 const FILE_RULES = {
@@ -30,6 +40,16 @@ const FILE_RULES = {
     required: true,
     types: ['image/jpeg', 'image/png', 'image/jpg'],
     label: 'ID Proof Image',
+  },
+  drivingLicenseImage: {
+    required: true,
+    types: ['image/jpeg', 'image/png', 'image/jpg'],
+    label: 'Driving License Photo',
+  },
+  bikePhoto: {
+    required: true,
+    types: ['image/jpeg', 'image/png', 'image/jpg'],
+    label: 'Bike Photo',
   },
 }
 
@@ -68,9 +88,10 @@ function Register() {
     idType: 'aadhaar',
     idNumber: '',
     idProofImage: null,
-    vehicleType: '',
     vehicleNumber: '',
     drivingLicenseNumber: '',
+    drivingLicenseImage: null,
+    bikePhoto: null,
     address: '',
     city: '',
     state: '',
@@ -153,12 +174,10 @@ function Register() {
         if (!trimmed) return 'Email is required.'
         if (!emailPattern.test(trimmed)) return 'Enter a valid email address.'
         return ''
-      case 'vehicleType':
-        if (!trimmed) return 'Vehicle Type is required.'
-        return ''
       case 'vehicleNumber':
-        if (!trimmed) return 'Vehicle Number is required.'
-        if (!vehicleNumberPattern.test(trimmed.toUpperCase())) return 'Vehicle Number must be valid, like CG04AB1234.'
+        if (!trimmed) return 'Bike Number Plate is required.'
+        if (!vehicleNumberPattern.test(trimmed.toUpperCase()))
+          return 'Bike Number Plate must be valid, like CG04AB1234.'
         return ''
       case 'drivingLicenseNumber':
         if (!trimmed) return 'Driving License Number is required.'
@@ -209,6 +228,8 @@ function Register() {
         return ''
       case 'profilePhoto':
       case 'idProofImage':
+      case 'drivingLicenseImage':
+      case 'bikePhoto':
         return validateFile(field, form[field])
       case 'upiId':
         if (!trimmed) return ''
@@ -288,7 +309,6 @@ function Register() {
       payload.append('name', form.name.trim())
       payload.append('mobileNo', form.mobileNo.trim())
       payload.append('email', form.email.trim())
-      payload.append('vehicleType', form.vehicleType.trim())
       payload.append('vehicleNumber', form.vehicleNumber.trim())
       payload.append('drivingLicenseNumber', form.drivingLicenseNumber.trim())
       payload.append('address', form.address.trim())
@@ -307,6 +327,8 @@ function Register() {
       payload.append('accountHolderName', form.accountHolderName.trim())
       payload.append('profilePhoto', form.profilePhoto)
       payload.append('idProofImage', form.idProofImage)
+      payload.append('drivingLicenseImage', form.drivingLicenseImage)
+      payload.append('bikePhoto', form.bikePhoto)
 
       const registerRes = await submitDeliveryRegistration(payload)
 
@@ -340,7 +362,7 @@ function Register() {
     'w-full rounded-xl border border-[#d1d5db] px-3 py-1.5 text-xs font-medium text-[#6b7280] transition file:mr-2 file:rounded-full file:border-0 file:bg-[var(--theme-accent-soft)] file:px-3 file:py-1.5 file:text-[10px] file:font-semibold file:text-[var(--theme-accent)] hover:file:bg-[#fff1e2] focus:border-[#f97316] focus:outline-none'
   const sectionDividerCls = 'border-b border-[#f3f4f6] pb-1 text-xs font-semibold uppercase tracking-wide text-[#9ca3af]'
   const errorCls = 'text-xs font-medium text-red-500'
-  const steps = ['Partner Profile', 'Location', 'Verification']
+  const steps = ['Rider Setup', 'Location', 'Verification']
 
   return (
     <div className="min-h-screen bg-[var(--theme-app-bg)] px-4 py-8">
@@ -380,11 +402,30 @@ function Register() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <label className={labelCls}>Email <input className={inputCls} type="email" value={form.email} onChange={update('email')} placeholder="Enter email" /> {errors.email && <span className={errorCls}>{errors.email}</span>}</label>
-              <label className={labelCls}>Vehicle Type <input className={inputCls} value={form.vehicleType} onChange={update('vehicleType')} placeholder="e.g., Bike, Scooter" /> {errors.vehicleType && <span className={errorCls}>{errors.vehicleType}</span>}</label>
+              <label className={labelCls}>Driving License Number <input className={`${inputCls} uppercase`} value={form.drivingLicenseNumber} onChange={update('drivingLicenseNumber')} placeholder="Enter DL number" /> {errors.drivingLicenseNumber && <span className={errorCls}>{errors.drivingLicenseNumber}</span>}</label>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className={labelCls}>Vehicle Number <input className={`${inputCls} uppercase`} value={form.vehicleNumber} onChange={update('vehicleNumber')} placeholder="e.g., CG04AB1234" /> {errors.vehicleNumber && <span className={errorCls}>{errors.vehicleNumber}</span>}</label>
-              <label className={labelCls}>Driving License Number <input className={`${inputCls} uppercase`} value={form.drivingLicenseNumber} onChange={update('drivingLicenseNumber')} placeholder="Enter DL number" /> {errors.drivingLicenseNumber && <span className={errorCls}>{errors.drivingLicenseNumber}</span>}</label>
+              <label className={labelCls}>Bike Number Plate <input className={`${inputCls} uppercase`} value={form.vehicleNumber} onChange={update('vehicleNumber')} placeholder="e.g., CG04AB1234" /> {errors.vehicleNumber && <span className={errorCls}>{errors.vehicleNumber}</span>}</label>
+              <div className="rounded-2xl border border-[rgba(249,115,22,0.12)] bg-[#fffaf5] px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#f97316]">Start with vehicle details</p>
+                <p className="mt-2 text-sm text-[#6b7280]">
+                  Upload the driving licence photo and bike photo in this first step so review can start with the key delivery documents.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1 rounded-2xl border border-[#e5e7eb] bg-white p-4">
+                <span className="text-sm font-semibold text-[#1f2937]">Driving License Photo</span>
+                <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('drivingLicenseImage')} />
+                <span className="text-[11px] font-medium text-[#dc2626]">Upload PNG, JPG or JPEG only. Max 5MB.</span>
+                {errors.drivingLicenseImage && <span className={errorCls}>{errors.drivingLicenseImage}</span>}
+              </div>
+              <div className="flex flex-col gap-1 rounded-2xl border border-[#e5e7eb] bg-white p-4">
+                <span className="text-sm font-semibold text-[#1f2937]">Bike Photo</span>
+                <input className={fileInputCls} type="file" accept=".jpg,.jpeg,.png" onChange={update('bikePhoto')} />
+                <span className="text-[11px] font-medium text-[#dc2626]">Upload PNG, JPG or JPEG only. Max 5MB.</span>
+                {errors.bikePhoto && <span className={errorCls}>{errors.bikePhoto}</span>}
+              </div>
             </div>
             <button type="button" onClick={() => handleNext(2)} className="mt-2 w-full rounded-2xl bg-[linear-gradient(135deg,#f97316,#fb923c)] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(249,115,22,0.28)]">Continue →</button>
           </div>

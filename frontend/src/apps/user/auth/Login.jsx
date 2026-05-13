@@ -4,7 +4,7 @@ import logo from '../../../assets/logo.png'
 import { signInWithPopup } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
 import LoadingSpinner from '../../../components/LoadingSpinner'
-import { auth, googleProvider } from '../../../firebase'
+import { auth, firebaseConfigError, googleProvider, isFirebaseConfigured } from '../../../firebase'
 import { sendUserOtp, userCookieCheck, userLogin } from '../../../../services/userAuthService'
 
 function Login() {
@@ -77,6 +77,10 @@ function Login() {
     setIsSubmitting(true)
 
     try {
+      if (!isFirebaseConfigured || !auth || !googleProvider) {
+        throw new Error(firebaseConfigError || 'Firebase configuration is missing.')
+      }
+
       const result = await signInWithPopup(auth, googleProvider)
       const googleUser = result?.user
       const email = googleUser?.email?.trim().toLowerCase()
@@ -192,13 +196,19 @@ function Login() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !isFirebaseConfigured}
             onClick={handleGoogleContinue}
-            className="theme-soft-button flex justify-center items-center w-full rounded-full p-2 text-[15px] font-semibold transition active:scale-[0.98] cursor-pointer"
+            className="theme-soft-button flex justify-center items-center w-full rounded-full p-2 text-[15px] font-semibold transition active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
             <img src={google} alt="Google logo" className="h-5 w-5" />
             <p className="ml-2">Continue with Google</p>
           </button>
+
+          {!isFirebaseConfigured ? (
+            <p className="theme-muted text-center text-xs">
+              Google login is not configured yet. Add Firebase values in your frontend env file.
+            </p>
+          ) : null}
 
           <button
             type="submit"

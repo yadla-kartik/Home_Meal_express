@@ -18,9 +18,10 @@ const deliveryRegisterSchema = new mongoose.Schema(
     idNumber: String,
     idProofImage: String,
 
-    vehicleType: String,
     vehicleNumber: String,
     drivingLicenseNumber: String,
+    drivingLicenseImage: String,
+    bikePhoto: String,
 
     address: String,
     city: String,

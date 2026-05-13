@@ -2,21 +2,41 @@ import { initializeApp } from 'firebase/app'
 import { GoogleAuthProvider, getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyAKlYZn3Jq5Zyh3dRE54-DxvfQtFWlbzHw',
-  authDomain: 'authentication-app-7e8ef.firebaseapp.com',
-  projectId: 'authentication-app-7e8ef',
-  storageBucket: 'authentication-app-7e8ef.firebasestorage.app',
-  messagingSenderId: '909000181389',
-  appId: '1:909000181389:web:370a560e130ee8222c04c4',
-  measurementId: 'G-VT0N5KR9JT',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || '',
 }
 
-const app = initializeApp(firebaseConfig)
-const auth = getAuth(app)
-const googleProvider = new GoogleAuthProvider()
+const requiredFirebaseEnvMap = {
+  VITE_FIREBASE_API_KEY: firebaseConfig.apiKey,
+  VITE_FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+  VITE_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+  VITE_FIREBASE_STORAGE_BUCKET: firebaseConfig.storageBucket,
+  VITE_FIREBASE_MESSAGING_SENDER_ID: firebaseConfig.messagingSenderId,
+  VITE_FIREBASE_APP_ID: firebaseConfig.appId,
+}
 
-googleProvider.setCustomParameters({
-  prompt: 'select_account',
-})
+const missingFirebaseEnv = Object.entries(requiredFirebaseEnvMap)
+  .filter(([, value]) => !value)
+  .map(([key]) => key)
 
-export { auth, googleProvider }
+const isFirebaseConfigured = missingFirebaseEnv.length === 0
+const firebaseConfigError = isFirebaseConfigured
+  ? ''
+  : `Missing Firebase environment variables: ${missingFirebaseEnv.join(', ')}`
+
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null
+const auth = app ? getAuth(app) : null
+const googleProvider = app ? new GoogleAuthProvider() : null
+
+if (googleProvider) {
+  googleProvider.setCustomParameters({
+    prompt: 'select_account',
+  })
+}
+
+export { auth, googleProvider, firebaseConfigError, isFirebaseConfigured }

@@ -19,7 +19,6 @@ function serializeDeliveryApproval(registration) {
     email: registration.email || '',
     idType: registration.idType || '',
     idNumber: registration.idNumber || '',
-    vehicleType: registration.vehicleType || '',
     vehicleNumber: registration.vehicleNumber || '',
     drivingLicenseNumber: registration.drivingLicenseNumber || '',
     address: registration.address || '',
@@ -37,6 +36,8 @@ function serializeDeliveryApproval(registration) {
     documents: {
       profilePhoto: registration.profilePhoto || '',
       idProofImage: registration.idProofImage || '',
+      drivingLicenseImage: registration.drivingLicenseImage || '',
+      bikePhoto: registration.bikePhoto || '',
     },
   }
 }

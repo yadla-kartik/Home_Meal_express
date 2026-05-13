@@ -18,6 +18,8 @@ const upload = multer({
 }).fields([
   { name: 'profilePhoto', maxCount: 1 },
   { name: 'idProofImage', maxCount: 1 },
+  { name: 'drivingLicenseImage', maxCount: 1 },
+  { name: 'bikePhoto', maxCount: 1 },
 ])
 
 function uploadDeliveryRegister(req, res, next) {

@@ -11,6 +11,7 @@ import {
   MapPinned,
   Clock3,
   CheckCircle2,
+  BadgeCheck,
   Loader2,
   ArrowLeft,
   Star,
@@ -23,6 +24,10 @@ import {
   getJourneySummary,
   getStationChefs,
 } from '../../services/userAuthService'
+import {
+  clearOrderConfirmation,
+  clearOrderDraft,
+} from './orderJourney/orderJourneyUtils'
 
 const PNR_DATA_SESSION_KEY = 'pnrSessionData'
 const PNR_INPUT_SESSION_KEY = 'pnrSessionInput'
@@ -30,16 +35,22 @@ const JOURNEY_STATIONS_SESSION_KEY = 'pnrJourneyStations'
 const SELECTED_STATION_SESSION_KEY = 'pnrSelectedStation'
 
 const TAG_STYLES = {
-  'Top Rated': 'bg-amber-50 text-amber-600 border-amber-200',
-  Popular: 'bg-orange-50 text-orange-600 border-orange-200',
-  Budget: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  New: 'bg-blue-50 text-blue-600 border-blue-200',
+  'Top Rated': 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]',
+  Popular: 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]',
+  Budget: 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]',
+  New: 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]',
 }
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
 }
+
+const surfaceCardCls = 'theme-card overflow-hidden rounded-[26px]'
+const headerIconCls =
+  'flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
+const mutedMetaCls = 'text-[11px] font-medium text-[var(--theme-muted)]'
+const sectionEyebrowCls = 'text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]'
 
 function PnrResultPage() {
   const { pnrNumber } = useParams()
@@ -141,6 +152,8 @@ function PnrResultPage() {
     sessionStorage.removeItem(PNR_INPUT_SESSION_KEY)
     sessionStorage.removeItem(JOURNEY_STATIONS_SESSION_KEY)
     sessionStorage.removeItem(SELECTED_STATION_SESSION_KEY)
+    clearOrderDraft()
+    clearOrderConfirmation()
     navigate('/')
   }
 
@@ -153,6 +166,8 @@ function PnrResultPage() {
   const handleOrder = (chef) => {
     if (!selectedStation) return
 
+    clearOrderDraft()
+    clearOrderConfirmation()
     navigate(`/station/${selectedStation.code}/chef/${chef.id}`, {
       state: {
         pnrData,
@@ -164,34 +179,40 @@ function PnrResultPage() {
   const selectedChefs = selectedStation ? chefMap[selectedStation.code] || [] : []
 
   return (
-    <div className="theme-app-shell min-h-screen bg-[#f8fafc]">
+    <div className="theme-page-shell min-h-screen">
       <Navbar />
 
       <div className="pt-16">
-        <div className="sticky top-16 z-30 border-b border-slate-100 bg-white/90 shadow-sm backdrop-blur-md">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-            <div className="flex items-center gap-3">
+        <div className="sticky top-16 z-30 border-b border-[color:var(--theme-surface-border)] bg-[rgba(255,255,255,0.84)] backdrop-blur-xl">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+            <div className="flex items-center gap-3.5">
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-orange-300 hover:text-orange-500"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/90 text-[var(--theme-muted)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
               >
                 <ArrowLeft size={16} />
               </button>
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                  <TrainFront size={17} />
+
+              <div className="flex items-center gap-3">
+                <div className={headerIconCls}>
+                  <TrainFront size={16} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">Journey Result</p>
-                  <p className="text-[13px] font-black leading-tight text-slate-800">{pnrNumber}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                    Journey Result
+                  </p>
+                  <p className="mt-0.5 text-[15px] font-semibold leading-tight text-[var(--theme-text)]">
+                    {pnrNumber}
+                  </p>
                 </div>
               </div>
             </div>
+
             <button
               type="button"
               onClick={handleBack}
-              className="hidden text-[12px] font-semibold text-slate-500 transition hover:text-orange-500 sm:block"
+              className="hidden text-[12px] font-semibold text-[var(--theme-muted)] transition hover:text-[var(--theme-accent)] sm:block"
             >
               Check another PNR
             </button>
@@ -207,8 +228,12 @@ function PnrResultPage() {
               exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center gap-4 py-32"
             >
-              <Loader2 size={32} className="animate-spin text-orange-400" />
-              <p className="text-[14px] font-semibold text-slate-500">Fetching journey and chef service stations...</p>
+              <div className="grid h-14 w-14 place-items-center rounded-full border border-[var(--theme-chip-border)] bg-white shadow-[var(--theme-shadow-soft)]">
+                <Loader2 size={24} className="animate-spin text-[var(--theme-accent)]" />
+              </div>
+              <p className="text-[14px] font-semibold text-[var(--theme-muted)]">
+                Fetching journey and chef service stations...
+              </p>
             </Motion.div>
           ) : error ? (
             <Motion.div
@@ -217,17 +242,18 @@ function PnrResultPage() {
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center gap-4 px-4 py-32 text-center"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,#fffdf9,#fff6ee)] text-[var(--theme-accent)] shadow-[var(--theme-shadow-soft)]">
                 <TrainFront size={28} />
               </div>
-              <p className="text-[16px] font-black text-slate-800">Journey Data Not Available</p>
-              <p className="max-w-sm text-[13px] text-slate-500">{error}</p>
+              <p className="text-[18px] font-semibold text-[var(--theme-text)]">Journey Data Not Available</p>
+              <p className="max-w-sm text-[13px] leading-6 text-[var(--theme-muted)]">{error}</p>
               <button
                 type="button"
                 onClick={handleBack}
-                className="mt-2 inline-flex items-center gap-2 rounded-[14px] bg-orange-500 px-5 py-2.5 text-[13px] font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.24)] transition hover:-translate-y-0.5"
+                className="theme-primary-button mt-2 inline-flex items-center gap-2 rounded-[16px] px-5 py-3 text-[13px] font-semibold text-white transition hover:-translate-y-0.5"
               >
-                <ArrowLeft size={14} strokeWidth={3} /> Try Another PNR
+                <ArrowLeft size={14} strokeWidth={3} />
+                Try Another PNR
               </button>
             </Motion.div>
           ) : (
@@ -236,60 +262,75 @@ function PnrResultPage() {
               initial="hidden"
               animate="show"
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-              className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6"
+              className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-7"
             >
-              <Motion.div
-                variants={fadeUp}
-                className="overflow-hidden rounded-[20px] border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.05)]"
-              >
-                <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-3.5">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
-                      <TrainFront size={15} />
+              <Motion.div variants={fadeUp} className={surfaceCardCls}>
+                <div className="flex items-center justify-between gap-4 border-b border-[color:var(--theme-surface-border)] px-5 py-4 sm:px-6">
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <div className={headerIconCls}>
+                      <TrainFront size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-[14px] font-black text-slate-900">{pnrData?.trainName}</p>
-                      <p className="text-[11px] font-medium text-slate-400">Train No. {pnrData?.trainNumber}</p>
+                      <p className="truncate text-[18px] font-semibold tracking-tight text-[var(--theme-text)]">
+                        {pnrData?.trainName}
+                      </p>
+                      <p className="mt-1 text-[12px] font-medium text-[var(--theme-muted)]">
+                        Train No. {pnrData?.trainNumber}
+                      </p>
                     </div>
                   </div>
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                    <CheckCircle2 size={10} strokeWidth={3} /> Confirmed
+
+                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                    <BadgeCheck size={10} strokeWidth={3} />
+                    Confirmed
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-0 divide-x divide-slate-100">
-                  <div className="flex min-w-0 flex-1 items-center gap-2 px-5 py-3">
-                    <div className="min-w-0 text-center">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">From</p>
-                      <p className="truncate text-[13px] font-black leading-tight text-slate-800">{pnrData?.boardingStation}</p>
+                <div className="grid gap-0 sm:grid-cols-[minmax(0,1.35fr)_220px_260px]">
+                  <div className="flex min-w-0 items-center gap-3 border-b border-[color:var(--theme-surface-border)] px-5 py-4 sm:border-b-0 sm:px-6">
+                    <div className="min-w-0">
+                      <p className={sectionEyebrowCls}>From</p>
+                      <p className="mt-1 truncate text-[15px] font-semibold leading-tight text-[var(--theme-text)]">
+                        {pnrData?.boardingStation}
+                      </p>
                     </div>
-                    <ArrowRight size={13} className="shrink-0 text-orange-400" />
-                    <div className="min-w-0 text-center">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">To</p>
-                      <p className="truncate text-[13px] font-black leading-tight text-slate-800">{pnrData?.destinationStation}</p>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
+                      <ArrowRight size={15} />
                     </div>
-                  </div>
-
-                  <div className="flex shrink-0 items-center gap-2 px-5 py-3">
-                    <CalendarDays size={13} className="shrink-0 text-emerald-500" />
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Date</p>
-                      <p className="text-[13px] font-bold text-slate-700">{pnrData?.dateOfJourney}</p>
+                    <div className="min-w-0">
+                      <p className={sectionEyebrowCls}>To</p>
+                      <p className="mt-1 truncate text-[15px] font-semibold leading-tight text-[var(--theme-text)]">
+                        {pnrData?.destinationStation}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2 px-5 py-3">
-                    <UserCircle2 size={13} className="shrink-0 text-orange-500" />
+                  <div className="flex shrink-0 items-center gap-3 border-b border-[color:var(--theme-surface-border)] px-5 py-4 sm:border-b-0 sm:border-l sm:px-6">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                      <CalendarDays size={15} />
+                    </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Passengers</p>
-                      <div className="mt-0.5 flex flex-wrap gap-1">
+                      <p className={sectionEyebrowCls}>Date</p>
+                      <p className="mt-1 text-[14px] font-semibold text-[var(--theme-text)]">
+                        {pnrData?.dateOfJourney}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-start gap-3 px-5 py-4 sm:border-l sm:px-6">
+                    <div className={headerIconCls}>
+                      <UserCircle2 size={15} />
+                    </div>
+                    <div>
+                      <p className={sectionEyebrowCls}>Passengers</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {pnrData?.passengers?.map((passenger, index) => (
                           <span
                             key={`${passenger.coach}-${passenger.berth}-${index}`}
-                            className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600"
+                            className="rounded-full border border-[color:var(--theme-surface-border)] bg-white px-2.5 py-1 text-[10px] font-semibold text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)]"
                           >
                             {passenger.coach}-{passenger.berth}
-                            <span className="ml-1 text-orange-500">{passenger.berthType}</span>
+                            <span className="ml-1.5 text-[var(--theme-accent)]">{passenger.berthType}</span>
                           </span>
                         ))}
                       </div>
@@ -298,64 +339,80 @@ function PnrResultPage() {
                 </div>
               </Motion.div>
 
-              <Motion.div variants={fadeUp} className="grid gap-4 lg:grid-cols-[300px_1fr]">
-                <div className="overflow-hidden rounded-[20px] border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+              <Motion.div variants={fadeUp} className="grid gap-5 lg:grid-cols-[320px_1fr]">
+                <div className={surfaceCardCls}>
+                  <div className="flex items-center justify-between gap-2 border-b border-[color:var(--theme-surface-border)] px-5 py-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className={headerIconCls}>
                         <MapPinned size={14} />
                       </div>
                       <div>
-                        <p className="text-[11px] font-black text-slate-800">Chef Service Stations</p>
-                        <p className="text-[10px] font-medium text-slate-400">Only stops where chefs are available</p>
+                        <p className="text-[14px] font-semibold text-[var(--theme-text)]">Chef Service Stations</p>
+                        <p className={mutedMetaCls}>Only stops where chefs are available</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1 p-2">
+                  <div className="flex flex-col gap-2 p-3">
                     {stations.length ? (
                       stations.map((station) => {
                         const isActive = selectedStation?.code === station.code
+
                         return (
                           <button
                             key={station.code}
                             type="button"
                             onClick={() => handleSelectStation(station)}
-                            className={`flex w-full items-center gap-3 rounded-[14px] px-3.5 py-3 text-left transition-all ${
+                            className={`flex w-full items-center gap-3 rounded-[18px] px-4 py-3.5 text-left transition-all ${
                               isActive
-                                ? 'border border-orange-200 bg-orange-50 shadow-sm'
-                                : 'border border-transparent hover:border-slate-100 hover:bg-slate-50'
+                                ? 'border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,#fffdf9,#fff6ee)] shadow-[var(--theme-shadow-soft)]'
+                                : 'border border-transparent bg-white/72 hover:border-[color:var(--theme-surface-border)] hover:bg-white'
                             }`}
                           >
-                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition ${
-                              isActive
-                                ? 'border-orange-200 bg-orange-100 text-orange-600'
-                                : 'border-slate-200 bg-slate-50 text-slate-400'
-                            }`}>
-                              <MapPin size={14} />
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition ${
+                                isActive
+                                  ? 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
+                                  : 'border-[color:var(--theme-surface-border)] bg-white text-[var(--theme-muted)]'
+                              }`}
+                            >
+                              <MapPin size={15} />
                             </div>
+
                             <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <p className={`truncate text-[13px] font-black ${isActive ? 'text-orange-600' : 'text-slate-800'}`}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p
+                                  className={`truncate text-[14px] font-semibold ${
+                                    isActive ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text)]'
+                                  }`}
+                                >
                                   {station.name}
                                 </p>
-                                <span className="shrink-0 rounded-md bg-slate-100 px-1 py-0.5 text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                <span className="shrink-0 rounded-full border border-[color:var(--theme-surface-border)] bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-muted)]">
                                   {station.code}
                                 </span>
                               </div>
-                              <div className="mt-0.5 flex items-center gap-2 text-[10px] font-medium text-slate-400">
-                                <span className="flex items-center gap-0.5"><Clock3 size={9} />{station.eta}</span>
-                                <span className="flex items-center gap-0.5"><ChefHat size={9} />{station.chefs} chefs</span>
+
+                              <div className="mt-1.5 flex items-center gap-3 text-[11px] font-medium text-[var(--theme-muted)]">
+                                <span className="flex items-center gap-1">
+                                  <Clock3 size={9} />
+                                  {station.eta}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <ChefHat size={9} />
+                                  {station.chefs} chefs
+                                </span>
                               </div>
                             </div>
-                            {isActive ? <ArrowRight size={13} className="shrink-0 text-orange-400" /> : null}
+
+                            {isActive ? <ArrowRight size={14} className="shrink-0 text-[var(--theme-accent)]" /> : null}
                           </button>
                         )
                       })
                     ) : (
-                      <div className="px-4 py-6 text-center">
-                        <p className="text-[13px] font-black text-slate-700">No chef service stations yet</p>
-                        <p className="mt-1 text-[11px] text-slate-400">
+                      <div className="px-4 py-8 text-center">
+                        <p className="text-[14px] font-semibold text-[var(--theme-text)]">No chef service stations yet</p>
+                        <p className="mt-2 text-[12px] text-[var(--theme-muted)]">
                           We will add chef coverage on this route soon.
                         </p>
                       </div>
@@ -363,7 +420,7 @@ function PnrResultPage() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-[20px] border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.05)]">
+                <div className={surfaceCardCls}>
                   <AnimatePresence mode="wait">
                     {!selectedStation ? (
                       <Motion.div
@@ -371,14 +428,14 @@ function PnrResultPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 py-12 text-center"
+                        className="flex min-h-[340px] flex-col items-center justify-center gap-4 px-6 py-12 text-center"
                       >
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-300">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
                           <ChefHat size={30} />
                         </div>
                         <div>
-                          <p className="text-[15px] font-black text-slate-700">Select a Chef Service Station</p>
-                          <p className="mt-1 max-w-xs text-[12px] text-slate-400">
+                          <p className="text-[18px] font-semibold text-[var(--theme-text)]">Select a Chef Service Station</p>
+                          <p className="mt-2 max-w-xs text-[13px] leading-6 text-[var(--theme-muted)]">
                             Pick one stop to browse chefs who can serve meals on your route.
                           </p>
                         </div>
@@ -392,35 +449,40 @@ function PnrResultPage() {
                         transition={{ duration: 0.3, ease: 'easeOut' }}
                         className="flex h-full flex-col"
                       >
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                        <div className="flex items-center justify-between gap-3 border-b border-[color:var(--theme-surface-border)] px-5 py-4 sm:px-6">
+                          <div className="flex items-center gap-3">
+                            <div className={headerIconCls}>
                               <ChefHat size={14} />
                             </div>
                             <div>
-                              <p className="text-[13px] font-black text-slate-800">
+                              <p className="text-[15px] font-semibold text-[var(--theme-text)]">
                                 Chefs at {selectedStation.name}
-                                <span className="ml-2 text-[10px] font-bold text-slate-400">({selectedStation.code})</span>
+                                <span className="ml-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-muted)]">
+                                  ({selectedStation.code})
+                                </span>
                               </p>
-                              <p className="text-[10px] font-medium text-slate-400">
-                                {selectedStation.chefs} chefs available • {selectedStation.eta}
+                              <p className={mutedMetaCls}>
+                                {selectedStation.chefs} chefs available - {selectedStation.eta}
                               </p>
                             </div>
                           </div>
+
                           <button
                             type="button"
                             onClick={() => setSelectedStation(null)}
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition hover:text-slate-600"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white text-[var(--theme-muted)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]"
                           >
                             <X size={13} />
                           </button>
                         </div>
 
-                        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+                        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5">
                           {stationLoading && selectedChefs.length === 0 ? (
                             <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
-                              <Loader2 size={24} className="animate-spin text-orange-400" />
-                              <p className="text-[12px] font-semibold text-slate-500">Loading available chefs...</p>
+                              <div className="grid h-12 w-12 place-items-center rounded-full border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)]">
+                                <Loader2 size={20} className="animate-spin text-[var(--theme-accent)]" />
+                              </div>
+                              <p className="text-[12px] font-semibold text-[var(--theme-muted)]">Loading available chefs...</p>
                             </div>
                           ) : selectedChefs.length ? (
                             selectedChefs.map((chef, index) => (
@@ -430,49 +492,57 @@ function PnrResultPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.06 * index, duration: 0.3 }}
                                 onClick={() => handleOrder(chef)}
-                                className="group flex cursor-pointer items-center gap-4 rounded-[16px] border border-slate-100 bg-[#fafcfd] px-4 py-3.5 transition hover:border-orange-200 hover:bg-[#fffaf7] hover:shadow-[0_4px_14px_rgba(249,115,22,0.06)]"
+                                className="group flex cursor-pointer items-center gap-4 rounded-[20px] border border-[color:var(--theme-surface-border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,249,243,0.75))] px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--theme-chip-border)] hover:shadow-[var(--theme-shadow-soft)]"
                               >
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-orange-100 bg-gradient-to-br from-orange-100 to-orange-50 text-[14px] font-black text-orange-500">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[15px] font-semibold text-[var(--theme-accent)]">
                                   {chef.name.charAt(0)}
                                 </div>
 
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="text-[14px] font-black text-slate-800">{chef.name}</p>
-                                    <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${TAG_STYLES[chef.tag] || TAG_STYLES.Popular}`}>
+                                    <p className="text-[16px] font-semibold text-[var(--theme-text)]">{chef.name}</p>
+                                    <span
+                                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] ${
+                                        TAG_STYLES[chef.tag] || TAG_STYLES.Popular
+                                      }`}
+                                    >
                                       {chef.tag}
                                     </span>
                                   </div>
-                                  <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                                    <UtensilsCrossed size={10} className="text-slate-400" />
+
+                                  <p className="mt-1 flex items-center gap-1.5 text-[12px] font-medium text-[var(--theme-muted)]">
+                                    <UtensilsCrossed size={10} className="text-[var(--theme-accent)]/70" />
                                     {chef.specialty}
                                   </p>
-                                  <div className="mt-1.5 flex items-center gap-3 text-[11px] text-slate-500">
-                                    <span className="flex items-center gap-1 font-bold text-amber-500">
+
+                                  <div className="mt-2.5 flex items-center gap-4 text-[11px] text-[var(--theme-muted)]">
+                                    <span className="flex items-center gap-1 font-semibold text-[var(--theme-accent)]">
                                       <Star size={10} fill="currentColor" />
                                       {chef.rating}
                                     </span>
                                     <span className="flex items-center gap-1">
-                                      <UtensilsCrossed size={9} className="text-slate-400" />
+                                      <UtensilsCrossed size={9} className="text-[var(--theme-muted)]" />
                                       {chef.dishes} dishes
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="shrink-0 text-right">
-                                  <p className="text-[12px] font-black text-slate-900">{chef.price}</p>
-                                  <p className="mt-0.5 text-[10px] font-semibold text-orange-500">Browse Menu</p>
+                                  <p className="text-[13px] font-semibold text-[var(--theme-text)]">{chef.price}</p>
+                                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)]">
+                                    Browse Menu
+                                  </p>
                                 </div>
                               </Motion.div>
                             ))
                           ) : (
                             <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 text-center">
-                              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">
+                              <div className="flex h-14 w-14 items-center justify-center rounded-[20px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]/55">
                                 <ChefHat size={24} />
                               </div>
                               <div>
-                                <p className="text-[14px] font-black text-slate-700">No chefs available yet</p>
-                                <p className="mt-1 text-[12px] text-slate-400">
+                                <p className="text-[15px] font-semibold text-[var(--theme-text)]">No chefs available yet</p>
+                                <p className="mt-2 text-[12px] leading-6 text-[var(--theme-muted)]">
                                   We will make chef service available at this station soon.
                                 </p>
                               </div>

@@ -128,6 +128,36 @@ const userOrderSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    gstRate: {
+      type: Number,
+      default: 0.05,
+      min: 0,
+    },
+    gstAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    deliveryCharge: {
+      type: Number,
+      default: 30,
+      min: 0,
+    },
+    totalAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: 'INR',
+      trim: true,
+    },
+    invoiceNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     orderStatus: {
       type: String,
       enum: ['pending_payment', 'placed', 'cancelled'],
@@ -143,10 +173,24 @@ const userOrderSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    paymentMode: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paymentProvider: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     paymentReference: {
       type: String,
       default: '',
       trim: true,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
     },
     source: {
       type: String,

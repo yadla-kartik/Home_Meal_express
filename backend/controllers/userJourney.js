@@ -3,6 +3,14 @@ const chefAuth = require('../models/chefAuth')
 const chefMenu = require('../models/chefMenu')
 const chefRegister = require('../models/chefRegister')
 const userOrder = require('../models/userOrder')
+const {
+  buildDemoAvailableStations,
+  buildDemoPnrSnapshot,
+  buildDemoTrainSummary,
+  getDemoChefMenu,
+  getDemoChefsForStation,
+  isDemoPnrEnabled,
+} = require('../utils/pnrDemoData')
 
 const BASE_URL = 'https://irctc-connect-api.rajivdubey.tech'
 const SDK_VERSION = '1'
@@ -28,6 +36,21 @@ const toStringArray = (value) => {
   return value
     .map((item) => toTrimmedString(String(item ?? '')))
     .filter(Boolean)
+}
+
+const FOOD_GST_RATE = 0.05
+const DELIVERY_CHARGE = 30
+const DEFAULT_CURRENCY = 'INR'
+const ONLINE_PAYMENT_MODE = 'online'
+const DEFAULT_PAYMENT_PROVIDER = 'demo_gateway'
+
+const roundCurrency = (value) =>
+  Math.round((toNumber(value, 0) + Number.EPSILON) * 100) / 100
+
+const buildReference = (prefix) => {
+  const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const randomPart = crypto.randomBytes(3).toString('hex').toUpperCase()
+  return `${prefix}-${dateStamp}-${randomPart}`
 }
 
 const formatDateForApi = (value) => {
@@ -360,6 +383,13 @@ const fetchTrainSummary = async (trainNumber, dateOfJourney) => {
   ])
 
   if (!trainInfoResult?.success && !liveResult?.success) {
+    if (isDemoPnrEnabled()) {
+      return {
+        success: true,
+        data: buildDemoTrainSummary(),
+      }
+    }
+
     return {
       success: false,
       error: trainInfoResult?.error || liveResult?.error || 'Unable to fetch train route details.',
@@ -493,6 +523,18 @@ const buildJourneyContext = async (pnrData) => {
       haltTime: entry.station.haltTime,
     }))
 
+  if (!availableStations.length && isDemoPnrEnabled()) {
+    return {
+      success: true,
+      data: {
+        pnrData,
+        trainSummary: summaryResult.data,
+        availableStations: buildDemoAvailableStations(),
+        stationChefs: {},
+      },
+    }
+  }
+
   return {
     success: true,
     data: {
@@ -522,6 +564,10 @@ const resolvePnrSnapshot = async (req) => {
 
   const liveResult = await fetchIrctcJson(`/api/checkPNRStatus/${pnr}`)
   if (!liveResult?.success) {
+    if (isDemoPnrEnabled()) {
+      return { success: true, data: buildDemoPnrSnapshot(pnr) }
+    }
+
     return { success: false, error: liveResult?.error || 'Unable to fetch PNR details.' }
   }
 
@@ -562,7 +608,11 @@ const getStationChefs = async (req, res) => {
     }
 
     const station = { code: stationCode, name: req.query?.stationName || stationCode }
-    const chefs = await buildChefListForStation(station)
+    let chefs = await buildChefListForStation(station)
+
+    if (!chefs.length && isDemoPnrEnabled()) {
+      chefs = getDemoChefsForStation(stationCode)
+    }
 
     return res.status(200).json({
       success: true,
@@ -593,6 +643,17 @@ const getChefMenuForStation = async (req, res) => {
       .lean()
 
     if (!approval) {
+      if (isDemoPnrEnabled()) {
+        const demoMenu = getDemoChefMenu(stationCode, chefId)
+        if (demoMenu) {
+          return res.status(200).json({
+            success: true,
+            message: 'Demo chef menu fetched successfully.',
+            data: demoMenu,
+          })
+        }
+      }
+
       return res.status(404).json({ success: false, message: 'Chef not found for this station.' })
     }
 
@@ -680,17 +741,67 @@ const createJourneyOrder = async (req, res) => {
       .populate('createdBy', 'name email phone')
       .lean()
 
-    if (!approval) {
-      return res.status(404).json({ success: false, message: 'Chef not found or not active.' })
+    let orderChefSnapshot = null
+    let dishMap = null
+
+    if (!approval && isDemoPnrEnabled()) {
+      const demoMenu = getDemoChefMenu(stationCode, chefId)
+      if (demoMenu) {
+        orderChefSnapshot = {
+          authId: demoMenu.chef.id,
+          registerId: demoMenu.chef.registerId,
+          name: demoMenu.chef.name,
+          kitchenName: demoMenu.chef.kitchenName,
+          cuisine: demoMenu.chef.cuisine,
+          speciality: demoMenu.chef.specialty,
+          nearestStation: demoMenu.chef.nearestStation,
+          prepTime: demoMenu.chef.prepTime,
+          phone: demoMenu.chef.phone,
+          email: demoMenu.chef.email,
+        }
+        dishMap = new Map(
+          demoMenu.menuItems.map((dish) => [
+            dish.id,
+            {
+              dishId: dish.id,
+              name: dish.name,
+              description: dish.desc,
+              category: dish.category,
+              price: dish.price,
+              imageUrl: dish.imageUrl,
+              servingSize: dish.servingSize,
+              spiceLevel: dish.spiceLevel,
+            },
+          ]),
+        )
+      }
     }
 
-    const menu = await chefMenu.findOne({ createdBy: chefId, status: 'published' }).lean()
-    if (!menu) {
-      return res.status(404).json({ success: false, message: 'Published menu not found for this chef.' })
-    }
+    if (!dishMap) {
+      if (!approval) {
+        return res.status(404).json({ success: false, message: 'Chef not found or not active.' })
+      }
 
-    const { matchingDishes } = getCoverageMatchValues(approval, menu, selectedStation)
-    const dishMap = new Map(matchingDishes.map((dish) => [dish.dishId, dish]))
+      const menu = await chefMenu.findOne({ createdBy: chefId, status: 'published' }).lean()
+      if (!menu) {
+        return res.status(404).json({ success: false, message: 'Published menu not found for this chef.' })
+      }
+
+      const { matchingDishes } = getCoverageMatchValues(approval, menu, selectedStation)
+      dishMap = new Map(matchingDishes.map((dish) => [dish.dishId, dish]))
+      orderChefSnapshot = {
+        authId: approval.createdBy?._id || chefId,
+        registerId: approval._id,
+        name: toTrimmedString(approval.createdBy?.name || approval.kitchenName || 'Chef'),
+        kitchenName: toTrimmedString(approval.kitchenName || ''),
+        cuisine: toTrimmedString(approval.cuisine || ''),
+        speciality: toTrimmedString(approval.speciality || ''),
+        nearestStation: toTrimmedString(approval.nearestStation || ''),
+        prepTime: toTrimmedString(approval.prepTime || ''),
+        phone: toTrimmedString(approval.createdBy?.phone || ''),
+        email: toTrimmedString(approval.createdBy?.email || ''),
+      }
+    }
 
     const items = rawItems
       .map((item) => {
@@ -719,8 +830,28 @@ const createJourneyOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Selected items are not available for this station.' })
     }
 
+    let paymentMode = toTrimmedString(req.body?.payment?.mode).toLowerCase()
+    const paymentMethod = toTrimmedString(req.body?.payment?.method).toLowerCase()
+    const paymentProvider = toTrimmedString(req.body?.payment?.provider || DEFAULT_PAYMENT_PROVIDER)
+
+    if (paymentMode && paymentMode !== ONLINE_PAYMENT_MODE) {
+      return res.status(400).json({ success: false, message: 'Only online payment is available right now.' })
+    }
+
+    if (!paymentMode && paymentMethod) {
+      paymentMode = ONLINE_PAYMENT_MODE
+    }
+
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-    const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0)
+    const subtotal = roundCurrency(items.reduce((sum, item) => sum + item.lineTotal, 0))
+    const gstRate = FOOD_GST_RATE
+    const gstAmount = roundCurrency(subtotal * gstRate)
+    const deliveryCharge = DELIVERY_CHARGE
+    const totalAmount = roundCurrency(subtotal + gstAmount + deliveryCharge)
+    const hasPaidOnline = paymentMode === ONLINE_PAYMENT_MODE && Boolean(paymentMethod)
+    const invoiceNumber = hasPaidOnline ? buildReference('HME') : ''
+    const paymentReference = hasPaidOnline ? buildReference('PAY') : ''
+    const paidAt = hasPaidOnline ? new Date() : null
 
     const order = await userOrder.create({
       createdBy: userId,
@@ -743,35 +874,57 @@ const createJourneyOrder = async (req, res) => {
         liveDeparture: selectedStation.liveDeparture,
         haltTime: selectedStation.haltTime,
       },
-      chef: {
-        authId: approval.createdBy?._id || chefId,
-        registerId: approval._id,
-        name: toTrimmedString(approval.createdBy?.name || approval.kitchenName || 'Chef'),
-        kitchenName: toTrimmedString(approval.kitchenName || ''),
-        cuisine: toTrimmedString(approval.cuisine || ''),
-        speciality: toTrimmedString(approval.speciality || ''),
-        nearestStation: toTrimmedString(approval.nearestStation || ''),
-        prepTime: toTrimmedString(approval.prepTime || ''),
-        phone: toTrimmedString(approval.createdBy?.phone || ''),
-        email: toTrimmedString(approval.createdBy?.email || ''),
-      },
+      chef: orderChefSnapshot,
       items,
       totalItems,
       subtotal,
-      orderStatus: 'pending_payment',
-      paymentStatus: 'pending',
-      source: 'pnr',
+      gstRate,
+      gstAmount,
+      deliveryCharge,
+      totalAmount,
+      currency: DEFAULT_CURRENCY,
+      invoiceNumber,
+      orderStatus: hasPaidOnline ? 'placed' : 'pending_payment',
+      paymentStatus: hasPaidOnline ? 'paid' : 'pending',
+      paymentMethod,
+      paymentMode,
+      paymentProvider: hasPaidOnline ? paymentProvider : '',
+      paymentReference,
+      paidAt,
+      source: toTrimmedString(req.body?.source || 'pnr') || 'pnr',
     })
 
     return res.status(201).json({
       success: true,
-      message: 'Journey order saved successfully.',
+      message: hasPaidOnline ? 'Journey order placed successfully.' : 'Journey order saved successfully.',
       data: {
         orderId: String(order._id),
+        invoiceNumber: order.invoiceNumber,
+        pnr: order.pnr,
+        trainNumber: order.trainNumber,
+        trainName: order.trainName,
+        boardingStation: order.boardingStation,
+        destinationStation: order.destinationStation,
+        dateOfJourney: order.dateOfJourney,
+        passengers: order.passengers,
+        selectedStation: order.selectedStation,
+        chef: order.chef,
+        items: order.items,
         subtotal: order.subtotal,
+        gstRate: order.gstRate,
+        gstAmount: order.gstAmount,
+        deliveryCharge: order.deliveryCharge,
+        totalAmount: order.totalAmount,
+        currency: order.currency,
         totalItems: order.totalItems,
         paymentStatus: order.paymentStatus,
+        paymentMode: order.paymentMode,
+        paymentMethod: order.paymentMethod,
+        paymentProvider: order.paymentProvider,
+        paymentReference: order.paymentReference,
+        paidAt: order.paidAt,
         orderStatus: order.orderStatus,
+        createdAt: order.createdAt,
       },
     })
   } catch (err) {

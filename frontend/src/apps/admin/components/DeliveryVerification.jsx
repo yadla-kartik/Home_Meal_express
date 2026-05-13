@@ -7,20 +7,16 @@ import {
   MapPin,
   Phone,
   Bike,
-  UserRound,
   X,
   XCircle,
   ArrowLeft,
   IdCard,
-  Mail,
   Calendar,
   CreditCard,
   FileText,
   Shield,
   Briefcase,
-  Car,
   User,
-  CheckCircle2,
   BadgeCheck
 } from 'lucide-react'
 import LoadingSpinner from '../../../components/LoadingSpinner'
@@ -207,7 +203,7 @@ function QueueItem({ approval, isSelected, onSelect, mode }) {
         <div className="min-w-0">
           <p className="text-[15px] font-semibold text-[var(--theme-text-strong)]">{approval.name}</p>
           <p className="mt-1 text-[11px] text-[var(--theme-accent)] uppercase font-semibold tracking-[0.12em]">
-            {approval.vehicleType}
+            {approval.vehicleNumber ? `Plate ${approval.vehicleNumber}` : 'Bike details pending'}
           </p>
         </div>
         <span
@@ -564,9 +560,8 @@ function DeliveryVerification({ onBack, approvalStatus = 'pending' }) {
                       <InfoItem label="IFSC Code" value={selectedApproval.ifscCode} />
                     </Section>
 
-                    <Section title="Vehicle & Licensing" icon={<Car size={16} className="text-[#f97316]" />} compact>
-                      <InfoItem label="Vehicle Type" value={selectedApproval.vehicleType} />
-                      <InfoItem label="Vehicle Number" value={selectedApproval.vehicleNumber} />
+                    <Section title="Bike & Licensing" icon={<Bike size={16} className="text-[#f97316]" />} compact>
+                      <InfoItem label="Bike Number Plate" value={selectedApproval.vehicleNumber} />
                       <InfoItem label={selectedApproval.idType === 'pan' ? 'PAN' : 'Aadhaar'} value={selectedApproval.idType === 'pan' ? selectedApproval.idNumber : maskAadhaar(selectedApproval.idNumber)} />
                       <InfoItem label="Driving Licence" value={selectedApproval.drivingLicenseNumber} />
                     </Section>
@@ -576,6 +571,8 @@ function DeliveryVerification({ onBack, approvalStatus = 'pending' }) {
                   <div className="grid grid-cols-1 gap-6 h-fit">
                     <Section title="Required Proofs" icon={<FileText size={16} className="text-[#f97316]" />} compact>
                       <div className="col-span-1 sm:col-span-2 space-y-3 px-1">
+                        <ImageCard label="Driving Licence" imagePath={selectedApproval.documents.drivingLicenseImage} alt="Rider driving licence" onOpen={setPreviewImage} />
+                        <ImageCard label="Bike Photo" imagePath={selectedApproval.documents.bikePhoto} alt="Rider bike" onOpen={setPreviewImage} />
                         <ImageCard label="ID Proof" imagePath={selectedApproval.documents.idProofImage} alt="Rider ID proof" onOpen={setPreviewImage} />
                       </div>
                     </Section>
