@@ -90,6 +90,25 @@ function Navbar({ isRegistered = false, deliveryName, onRegisterClick }) {
         </div>
 
         <div className="relative flex shrink-0 items-center gap-2 text-sm font-medium text-[#0f172a] sm:gap-3 md:gap-5" ref={profileMenuRef}>
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6 mr-2">
+            <button 
+              type="button"
+              onClick={() => navigate('/delivery/orders')}
+              className="group relative px-1 py-2 text-[13px] font-semibold text-[var(--theme-text)] transition-colors hover:text-[var(--theme-accent)]"
+            >
+              Orders
+              <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all duration-300 group-hover:w-full" />
+            </button>
+            <button 
+              type="button"
+              onClick={() => navigate('/delivery/payments')}
+              className="group relative px-1 py-2 text-[13px] font-semibold text-[var(--theme-text)] transition-colors hover:text-[var(--theme-accent)]"
+            >
+              Payment
+              <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-[var(--theme-accent)] transition-all duration-300 group-hover:w-full" />
+            </button>
+          </nav>
+
           <button className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex">
             <svg
               viewBox="0 0 24 24"

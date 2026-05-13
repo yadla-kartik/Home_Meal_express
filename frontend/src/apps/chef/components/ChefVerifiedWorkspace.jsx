@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, BadgeCheck, CheckCircle2, ChefHat, MapPinned, Sparkles, UtensilsCrossed, Star } from 'lucide-react'
+import { ArrowRight, BadgeCheck, CheckCircle2, ChefHat, MapPinned, Sparkles, UtensilsCrossed, Star, XCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const launchCards = [
@@ -54,7 +54,7 @@ const itemVariants = {
   },
 }
 
-function ProgressRing() {
+function ProgressRing({ color = '#f97316', secondaryColor = 'rgba(249,115,22,0.16)' }) {
   const progress = 100
   const radius = 46
   const circumference = 2 * Math.PI * radius
@@ -67,7 +67,7 @@ function ProgressRing() {
           cy="60"
           r={radius}
           fill="none"
-          stroke="rgba(16,185,129,0.16)"
+          stroke={secondaryColor}
           strokeWidth="10"
         />
         <motion.circle
@@ -86,14 +86,14 @@ function ProgressRing() {
         />
         <defs>
           <linearGradient id="chefVerifiedWorkspaceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#059669" />
+            <stop offset="0%" stopColor={color} />
+            <stop offset="100%" stopColor={color} />
           </linearGradient>
         </defs>
       </svg>
 
-      <div className="absolute inset-0 m-auto flex h-24 w-24 flex-col items-center justify-center rounded-full border border-emerald-100 bg-white shadow-[var(--theme-shadow-soft)]">
-        <p className="text-[30px] font-bold leading-none text-emerald-600">100%</p>
+      <div className="absolute inset-0 m-auto flex h-24 w-24 flex-col items-center justify-center rounded-full border border-orange-100 bg-white shadow-[var(--theme-shadow-soft)]">
+        <p className="text-[30px] font-bold leading-none text-orange-600">100%</p>
         <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted)]">
           live
         </p>
@@ -103,6 +103,15 @@ function ProgressRing() {
 }
 
 function ChefVerifiedWorkspace() {
+  const [showVerifiedBanner, setShowVerifiedBanner] = React.useState(() => {
+    return localStorage.getItem('hme_chef_verified_seen') !== 'true'
+  })
+
+  const dismissBanner = () => {
+    localStorage.setItem('hme_chef_verified_seen', 'true')
+    setShowVerifiedBanner(false)
+  }
+
   return (
     <motion.section
       className="w-full py-4"
@@ -114,9 +123,19 @@ function ChefVerifiedWorkspace() {
       <div className="grid gap-5 lg:grid-row-[1.08fr_0.92fr]">
         <motion.div
           variants={itemVariants}
-          className="theme-card rounded-[28px] p-5 sm:p-6"
+          className="theme-card relative rounded-[28px] p-5 sm:p-6"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700">
+          {showVerifiedBanner && (
+            <button
+              type="button"
+              onClick={dismissBanner}
+              className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-full bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              title="Dismiss"
+            >
+              <XCircle size={18} className="lucide lucide-x-circle" />
+            </button>
+          )}
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-orange-700">
             <BadgeCheck size={14} />
             Chef verified
           </div>
@@ -135,13 +154,13 @@ function ChefVerifiedWorkspace() {
                 <motion.article
                   key={card.title}
                   variants={itemVariants}
-                  className="rounded-[24px] border border-emerald-100 bg-[linear-gradient(180deg,#ffffff,#f5fff9)] p-4 shadow-[var(--theme-shadow-soft)]"
+                  className="rounded-[24px] border border-orange-100 bg-[linear-gradient(180deg,#ffffff,#fffaf4)] p-4 shadow-[var(--theme-shadow-soft)]"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-700">
                       {card.eyebrow}
                     </span>
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-50 text-orange-600">
                       <Icon size={18} />
                     </span>
                   </div>
@@ -158,10 +177,10 @@ function ChefVerifiedWorkspace() {
 
           <motion.div
             variants={itemVariants}
-            className="mt-5 flex flex-col gap-3 rounded-[24px] border border-emerald-100 bg-emerald-50/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="mt-5 flex flex-col gap-3 rounded-[24px] border border-orange-100 bg-orange-50/70 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-emerald-600 shadow-[var(--theme-shadow-soft)]">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-orange-600 shadow-[var(--theme-shadow-soft)]">
                 <Sparkles size={18} />
               </span>
               <div>
@@ -176,7 +195,7 @@ function ChefVerifiedWorkspace() {
 
             <Link
               to="/chef/menu"
-              className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(5,150,105,0.26)] transition hover:-translate-y-0.5 hover:bg-emerald-700"
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(249,115,22,0.26)] transition hover:-translate-y-0.5 hover:bg-orange-700"
             >
               Add Menu
               <ArrowRight size={16} className="transition group-hover:translate-x-1" />
@@ -189,17 +208,17 @@ function ChefVerifiedWorkspace() {
             variants={itemVariants}
             className="theme-card rounded-[28px] p-5 sm:p-6"
           >
-            <div className="rounded-[24px] border border-emerald-100 bg-[linear-gradient(135deg,#ecfdf5,#ffffff)] p-5 shadow-[var(--theme-shadow-soft)]">
+            <div className="rounded-[24px] border border-orange-100 bg-[linear-gradient(135deg,#fff7ed,#ffffff)] p-5 shadow-[var(--theme-shadow-soft)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-700">
                     Current status
                   </p>
                   <h3 className="mt-2 text-2xl font-bold text-[var(--theme-text)]">
                     Approved and active
                   </h3>
                 </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
                   Live
                 </span>
               </div>
@@ -214,10 +233,10 @@ function ChefVerifiedWorkspace() {
                     The next move is simple: finish your menu so customers can start seeing your kitchen.
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-[var(--theme-shadow-soft)]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-semibold text-orange-700 shadow-[var(--theme-shadow-soft)]">
                   <span className="relative flex h-3.5 w-3.5 items-center justify-center">
-                    <span className="absolute h-3.5 w-3.5 rounded-full bg-emerald-500/20 animate-ping" />
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="absolute h-3.5 w-3.5 rounded-full bg-orange-500/20 animate-ping" />
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
                   </span>
                   All chef actions are now unlocked
                 </div>
@@ -230,11 +249,11 @@ function ChefVerifiedWorkspace() {
             className="theme-card rounded-[28px] p-5 sm:p-6"
           >
             <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orange-50 text-orange-600">
                 <Star size={18} />
               </span>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">
                   Best next steps
                 </p>
                 <h3 className=" text-2xl font-bold text-[var(--theme-text)]">
@@ -247,9 +266,9 @@ function ChefVerifiedWorkspace() {
               {quickWins.map((step) => (
                 <div
                   key={step}
-                  className="flex items-center gap-3 rounded-[22px] border border-emerald-100 bg-white p-3 shadow-[var(--theme-shadow-soft)]"
+                  className="flex items-center gap-3 rounded-[22px] border border-orange-100 bg-white p-3 shadow-[var(--theme-shadow-soft)]"
                 >
-                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-orange-50 text-orange-600">
                     <BadgeCheck size={16} />
                   </span>
                   <p className="text-sm font-medium text-[var(--theme-text)]">

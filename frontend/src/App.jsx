@@ -16,6 +16,9 @@ import DeliveryOtp from './apps/delivery/auth/DeliveryOtp'
 import DeliveryDashboard from './apps/delivery/deliveryDashboard'
 import DeliveryRegister from './apps/delivery/auth/Register'
 import { deliveryCookieCheck } from '../services/deliveryAuthService'
+import Orders from './apps/delivery/Orders'
+import PaymentAnalysis from './apps/delivery/PaymentAnalysis'
+import DeliveryOrderDetails from './apps/delivery/DeliveryOrderDetails'
 import AdminLogin from './apps/admin/auth/AdminLogin'
 import AdminDashboard from './apps/admin/AdminDashboard'
 import { adminCookieCheck } from '../services/adminAuthService'
@@ -130,7 +133,46 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/delivery/orders"
+        element={
+          <ProtectedRoute
+            authCheck={deliveryCookieCheck}
+            isAuthorized={isDeliveryAuthorized}
+            redirectTo="/delivery/login"
+            loadingLabel="Loading ..."
+          >
+            <Orders />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/delivery/payments"
+        element={
+          <ProtectedRoute
+            authCheck={deliveryCookieCheck}
+            isAuthorized={isDeliveryAuthorized}
+            redirectTo="/delivery/login"
+            loadingLabel="Loading ..."
+          >
+            <PaymentAnalysis />
+          </ProtectedRoute>
+        }
+      />
 
+      <Route
+        path="/delivery/order/:orderId"
+        element={
+          <ProtectedRoute
+            authCheck={deliveryCookieCheck}
+            isAuthorized={isDeliveryAuthorized}
+            redirectTo="/delivery/login"
+            loadingLabel="Loading ..."
+          >
+            <DeliveryOrderDetails />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route
