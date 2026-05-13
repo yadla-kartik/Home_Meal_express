@@ -688,11 +688,35 @@ function AddMenu() {
                         onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))}
                         placeholder="149"
                       />
-                      {isCheckingPrice && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+                        {isCheckingPrice ? (
                           <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--theme-accent)] border-t-transparent block" />
+                        ) : null}
+                        {selectedDish.priceGuidance?.status !== 'ok' && selectedDish.priceGuidance?.warningMessage ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowPriceWarningPopup((prev) => !prev)}
+                            className="grid h-5 w-5 place-items-center rounded-full bg-red-50 text-red-500 transition hover:bg-red-100"
+                            title="View price guidance"
+                          >
+                            <AlertTriangle size={13} />
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {showPriceWarningPopup && selectedDish.priceGuidance?.status !== 'ok' && selectedDish.priceGuidance?.warningMessage ? (
+                        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[280px] rounded-[18px] border border-red-200 bg-white p-3 text-[11px] text-red-600 shadow-[0_18px_36px_rgba(15,23,42,0.14)]">
+                          <p className="inline-flex items-start gap-2 font-semibold">
+                            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                            <span>{selectedDish.priceGuidance.warningMessage}</span>
+                          </p>
+                          {(selectedDish.priceGuidance.suggestedMin || selectedDish.priceGuidance.suggestedMax) ? (
+                            <p className="mt-2 pl-6 text-[10px] font-semibold text-red-500">
+                              Suggested price range: Rs {selectedDish.priceGuidance.suggestedMin || 0} - Rs {selectedDish.priceGuidance.suggestedMax || 0}
+                            </p>
+                          ) : null}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                     {hasCurrentPriceWarning(selectedDish) && (
                       <div className="mt-1.5 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-600">

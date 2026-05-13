@@ -328,3 +328,47 @@ export const checkPnrDetails = async (pnr) => {
     return err.response?.data || { success: false, message: 'Network error while fetching PNR details' }
   }
 }
+
+export const getJourneySummary = async (data) => {
+  try {
+    const res = await api.post('/login/pnr/journey-summary', data)
+    return res.data
+  } catch (err) {
+    console.error('Error fetching journey summary:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching chef service stations.' }
+  }
+}
+
+export const getStationChefs = async (stationCode, stationName = '') => {
+  try {
+    const res = await api.get(`/login/stations/${stationCode}/chefs`, {
+      params: stationName ? { stationName } : {},
+    })
+    return res.data
+  } catch (err) {
+    console.error('Error fetching station chefs:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching station chefs.' }
+  }
+}
+
+export const getStationChefMenu = async (stationCode, chefId, stationName = '') => {
+  try {
+    const res = await api.get(`/login/stations/${stationCode}/chefs/${chefId}/menu`, {
+      params: stationName ? { stationName } : {},
+    })
+    return res.data
+  } catch (err) {
+    console.error('Error fetching chef menu:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching chef menu.' }
+  }
+}
+
+export const createJourneyOrder = async (data) => {
+  try {
+    const res = await api.post('/login/orders', data)
+    return res.data
+  } catch (err) {
+    console.error('Error creating journey order:', err)
+    return err.response?.data || { success: false, message: 'Network error while saving your order.' }
+  }
+}
