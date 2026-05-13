@@ -112,22 +112,6 @@ const mapPnrData = (pnr, payload) => {
   }
 }
 
-const fallbackPnrData = {
-  trainNumber: '18426',
-  trainName: 'DURG PURI EXP',
-  boardingStation: 'DURG (DURG)',
-  destinationStation: 'PURI (PURI)',
-  dateOfJourney: '26-Apr-2026',
-  passengers: [
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '6', berthType: 'SL' },
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '8', berthType: 'SL' },
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '18', berthType: 'SL' },
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '21', berthType: 'SL' },
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '19', berthType: 'SL' },
-    { bookingStatus: 'CNF', currentStatus: 'CNF', coach: 'S1', berth: '22', berthType: 'SL' },
-  ],
-}
-
 const normalizeToken = (value) => {
   const token = String(value ?? '').trim()
   return token || ''
@@ -376,10 +360,9 @@ module.exports = {
         })
       }
 
-      return res.status(200).json({
-        success: true,
-        message: 'PNR details fetched successfully.',
-        data: fallbackPnrData,
+      return res.status(400).json({
+        success: false,
+        message: liveResult?.error || 'Unable to fetch real PNR details right now.',
       })
     } catch (err) {
       console.error('Error occurred while checkPnr in userOtpAuth controller:', err.message)

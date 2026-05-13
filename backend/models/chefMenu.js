@@ -74,47 +74,6 @@ const chefMenuDishSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    priceGuidance: {
-      status: {
-        type: String,
-        enum: ['', 'ok', 'high', 'low', 'unknown'],
-        default: '',
-      },
-      suggestedMin: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      suggestedMax: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      warningMessage: {
-        type: String,
-        default: '',
-        trim: true,
-      },
-      confidence: {
-        type: String,
-        default: '',
-        trim: true,
-      },
-      checkedAt: {
-        type: Date,
-        default: null,
-      },
-      checkedSignature: {
-        type: String,
-        default: '',
-        trim: true,
-      },
-      source: {
-        type: String,
-        default: '',
-        trim: true,
-      },
-    },
   },
   { _id: false },
 )

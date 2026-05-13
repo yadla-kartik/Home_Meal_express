@@ -57,18 +57,6 @@ const getPriceCeilingForDish = (dish = {}) => {
   return PRICE_RANGE_CAPS[category] || 320
 }
 
-const buildPriceGuidanceSignature = (dish = {}) => {
-  const tags = toStringArray(dish.tags).sort().join('|')
-  return [
-    toTrimmedString(dish.name).toLowerCase(),
-    Math.max(0, toNumber(dish.price, 0)),
-    toTrimmedString(dish.category, 'Veg').toLowerCase(),
-    toTrimmedString(dish.spiceLevel, 'Medium').toLowerCase(),
-    toTrimmedString(dish.servingSize, '1 person').toLowerCase(),
-    tags.toLowerCase(),
-  ].join('::')
-}
-
 const getPollinationsHeaders = () => {
   const apiKey = process.env.POLLINATIONS_API_KEY || ''
   return apiKey ? { Authorization: `Bearer ${apiKey}` } : {}
@@ -176,12 +164,11 @@ const normalizePriceGuidance = (guidance = {}, price = 0) => {
   const warningMessage = toTrimmedString(guidance.warningMessage)
   const confidence = toTrimmedString(guidance.confidence)
   const checkedAt = toIsoDateOrNull(guidance.checkedAt) || new Date()
-  const checkedSignature = toTrimmedString(guidance.checkedSignature)
   const source = toTrimmedString(guidance.source, 'gemini')
 
   const defaultWarningMessage =
     status === 'high'
-      ? `This price looks higher than the usual homemade market range for ${toTrimmedString(guidance.dishName, 'this dish')}. Consider keeping it closer to Rs ${suggestedMax || price}.`
+      ? `This price looks higher than the usual homemade market range for ${toTrimmedString(guidance.dishName, 'this dish')}.`
       : ''
 
   return {
@@ -191,7 +178,6 @@ const normalizePriceGuidance = (guidance = {}, price = 0) => {
     warningMessage: warningMessage || defaultWarningMessage,
     confidence,
     checkedAt,
-    checkedSignature,
     source,
   }
 }
@@ -281,10 +267,34 @@ Rules:
 - For most homemade veg dishes, usually stay at or below INR 280.
 - For homemade non-veg dishes like chicken or mutton biryani, usually stay at or below INR 420.
 - Keep suggestedMin and suggestedMax realistic whole-number INR values.
-- If status is "high", warningMessage must tell the chef the price looks higher than normal and suggest keeping it near the upper range.
+- If status is "high", warningMessage must briefly say the price looks higher than normal.
 - If status is "ok", keep warningMessage empty.
 - Never mention that you are an AI.
 - Return only valid JSON.`
+}
+
+const getFallbackPriceGuidance = (dish = {}) => {
+  const price = Math.max(0, toNumber(dish.price, 0))
+  const ceiling = getPriceCeilingForDish(dish)
+  const floor = Math.max(40, Math.round(ceiling * 0.55))
+  const status = price > ceiling ? 'high' : 'ok'
+
+  return normalizePriceGuidance(
+    {
+      dishName: toTrimmedString(dish.name),
+      status,
+      suggestedMin: floor,
+      suggestedMax: ceiling,
+      warningMessage:
+        status === 'high'
+          ? `This price looks higher than the usual homemade market range for ${toTrimmedString(dish.name, 'this dish')}.`
+          : '',
+      confidence: 'medium',
+      checkedAt: new Date().toISOString(),
+      source: 'fallback',
+    },
+    price,
+  )
 }
 
 const generateDishPriceGuidance = async (dish = {}) => {
@@ -305,7 +315,6 @@ const generateDishPriceGuidance = async (dish = {}) => {
       ...parsed,
       dishName,
       checkedAt: new Date().toISOString(),
-      checkedSignature: buildPriceGuidanceSignature(dish),
       source: 'gemini',
     },
     price,
@@ -514,9 +523,6 @@ const normalizeDish = (dish = {}, index = 0) => ({
   imageMode: ['', 'upload', 'ai'].includes(dish.imageMode) ? dish.imageMode : '',
   imageUrl: toTrimmedString(dish.imageUrl),
   sortOrder: Math.max(0, toNumber(dish.sortOrder, index)),
-  priceGuidance: dish.priceGuidance
-    ? normalizePriceGuidance(dish.priceGuidance, dish.price)
-    : null,
 })
 
 const serializeChefMenu = (menu) => ({
@@ -544,18 +550,6 @@ const serializeChefMenu = (menu) => ({
         imageMode: dish.imageMode || '',
         imageUrl: dish.imageUrl || '',
         sortOrder: Number.isFinite(dish.sortOrder) ? dish.sortOrder : 0,
-        priceGuidance: dish.priceGuidance
-          ? {
-              status: dish.priceGuidance.status || 'unknown',
-              suggestedMin: Number.isFinite(dish.priceGuidance.suggestedMin) ? dish.priceGuidance.suggestedMin : 0,
-              suggestedMax: Number.isFinite(dish.priceGuidance.suggestedMax) ? dish.priceGuidance.suggestedMax : 0,
-              warningMessage: dish.priceGuidance.warningMessage || '',
-              confidence: dish.priceGuidance.confidence || '',
-              checkedAt: dish.priceGuidance.checkedAt || null,
-              checkedSignature: dish.priceGuidance.checkedSignature || '',
-              source: dish.priceGuidance.source || '',
-            }
-          : null,
       }))
     : [],
 })
@@ -632,45 +626,12 @@ const saveChefMenuDraft = async (req, res) => {
     const nextStatus =
       req.body?.status === 'published' ? 'published' : DEFAULT_MENU_STATUS
 
-    const shouldUseGemini = Boolean(getGeminiApiKey())
-    const dishesWithGuidance = shouldUseGemini
-      ? await Promise.all(
-          normalizedDishes.map(async (dish) => {
-            const existingGuidance = dish.priceGuidance
-            if (dish.price <= 0 || !dish.name) {
-              return { ...dish, priceGuidance: null }
-            }
-            const currentSignature = buildPriceGuidanceSignature(dish)
-            const needsFreshGuidance =
-              !existingGuidance ||
-              !existingGuidance.checkedAt ||
-              existingGuidance.status === 'unknown' ||
-              existingGuidance.checkedSignature !== currentSignature
-
-            if (!needsFreshGuidance) {
-              return dish
-            }
-
-            try {
-              const freshGuidance = await generateDishPriceGuidance(dish)
-              return { ...dish, priceGuidance: freshGuidance }
-            } catch (guidanceErr) {
-              geminiLog('price guidance fallback used during draft save', {
-                dishName: dish.name,
-                message: guidanceErr.message,
-              })
-              return dish
-            }
-          }),
-        )
-      : normalizedDishes
-
     const savedMenu = await chefMenu.findOneAndUpdate(
       { createdBy: chefId },
       {
         createdBy: chefId,
         status: nextStatus,
-        dishes: dishesWithGuidance,
+        dishes: normalizedDishes,
         lastSavedAt: new Date(),
         ...(nextStatus === 'published' ? { publishedAt: new Date() } : {}),
       },
@@ -711,7 +672,18 @@ const getDishPriceGuidance = async (req, res) => {
       return res.status(400).json({ message: 'Dish name and price are required for price guidance.' })
     }
 
-    const guidance = await generateDishPriceGuidance(req.body)
+    let guidance
+
+    try {
+      guidance = await generateDishPriceGuidance(req.body)
+    } catch (guidanceErr) {
+      geminiLog('price guidance fallback used', {
+        dishName,
+        status: guidanceErr.response?.status || null,
+        message: guidanceErr.message,
+      })
+      guidance = getFallbackPriceGuidance(req.body)
+    }
 
     return res.status(200).json({ guidance })
   } catch (err) {

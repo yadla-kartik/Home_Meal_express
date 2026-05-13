@@ -58,7 +58,7 @@ const categories = [
 const spiceLevels = ['Mild', 'Medium', 'Spicy']
 const tagOptions = ['Healthy', 'Homemade', 'Low Oil', 'Quick', 'Protein Rich']
 
-const fieldCls = 'theme-input min-h-10 rounded-[14px] px-3.5 py-2.5 text-[13px] font-medium'
+const fieldCls = 'theme-input h-11 w-full rounded-[14px] px-3.5 text-[13px] font-medium'
 const labelCls = 'text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-muted)]'
 
 const normalizeDishFromApi = (dish = {}) => ({
@@ -76,7 +76,7 @@ const normalizeDishFromApi = (dish = {}) => ({
   stations: Array.isArray(dish.stations) && dish.stations.length ? dish.stations : ['Raipur'],
   imageMode: dish.imageMode || '',
   imageUrl: dish.imageUrl || '',
-  priceGuidance: dish.priceGuidance || null,
+  priceGuidance: null,
 })
 
 const toApiDish = (dish, index) => ({
@@ -95,26 +95,7 @@ const toApiDish = (dish, index) => ({
   imageMode: dish.imageMode || '',
   imageUrl: dish.imageUrl || '',
   sortOrder: index,
-  priceGuidance: dish.priceGuidance || null,
 })
-
-const buildPriceGuidanceSignature = (dish = {}) => {
-  const tags = Array.isArray(dish.tags) ? [...dish.tags].sort().join('|') : ''
-  return [
-    (dish.name || '').trim().toLowerCase(),
-    Number(dish.price || 0),
-    (dish.category || 'Veg').trim().toLowerCase(),
-    (dish.spiceLevel || 'Medium').trim().toLowerCase(),
-    (dish.servingSize || '1 person').trim().toLowerCase(),
-    tags.toLowerCase(),
-  ].join('::')
-}
-
-const hasCurrentPriceWarning = (dish = {}) => {
-  if (!dish?.priceGuidance?.warningMessage) return false
-  if (dish.priceGuidance.status === 'ok') return false
-  return dish.priceGuidance.checkedSignature === buildPriceGuidanceSignature(dish)
-}
 
 function MenuSavedPopup({ isOpen, onContinue }) {
   if (!isOpen) return null
@@ -245,6 +226,7 @@ function AddMenu() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [aiImageMessage, setAiImageMessage] = React.useState('')
   const [showSavedPopup, setShowSavedPopup] = React.useState(false)
+  const [showPriceWarningPopup, setShowPriceWarningPopup] = React.useState(false)
   const [customTagInput, setCustomTagInput] = React.useState('')
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false)
   const [dishes, setDishes] = React.useState([])
@@ -278,7 +260,13 @@ function AddMenu() {
 
   React.useEffect(() => {
     setAiImageMessage('')
+    setShowPriceWarningPopup(false)
   }, [selectedId])
+
+  React.useEffect(() => {
+    if (selectedDish?.priceGuidance?.status !== 'ok' && selectedDish?.priceGuidance?.warningMessage) return
+    setShowPriceWarningPopup(false)
+  }, [selectedDish?.priceGuidance?.status, selectedDish?.priceGuidance?.warningMessage])
 
   React.useEffect(() => {
     if (!selectedDish?.id) {
@@ -288,12 +276,6 @@ function AddMenu() {
 
     const priceValue = Number(selectedDish.price || 0)
     if (!selectedDish.name.trim() || priceValue <= 0) {
-      setIsCheckingPrice(false)
-      return undefined
-    }
-
-    const currentSignature = buildPriceGuidanceSignature(selectedDish)
-    if (selectedDish.priceGuidance?.checkedSignature === currentSignature) {
       setIsCheckingPrice(false)
       return undefined
     }
@@ -329,7 +311,7 @@ function AddMenu() {
       setDishes((prev) => prev.map((dish) => (
         dish.id === selectedDish.id ? { ...dish, priceGuidance: response.guidance } : dish
       )))
-    }, 700)
+    }, 1200)
 
     return () => {
       window.clearTimeout(timer)
@@ -346,8 +328,11 @@ function AddMenu() {
 
   const updateDish = (key, value) => {
     if (!selectedDish) return
+    const shouldResetPriceGuidance = ['name', 'price', 'category', 'spiceLevel', 'servingSize', 'tags'].includes(key)
     setDishes((prev) => prev.map((dish) => (
-      dish.id === selectedDish.id ? { ...dish, [key]: value } : dish
+      dish.id === selectedDish.id
+        ? { ...dish, [key]: value, ...(shouldResetPriceGuidance ? { priceGuidance: null } : {}) }
+        : dish
     )))
   }
 
@@ -631,41 +616,46 @@ function AddMenu() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
                   <label className="grid gap-2">
                     <span className={labelCls}>Dish name</span>
                     <input className={fieldCls} value={selectedDish.name} onChange={(event) => updateDish('name', event.target.value)} placeholder="Paneer thali" />
                   </label>
                   <label className="grid gap-2">
                     <span className={labelCls}>Price</span>
-                    <div className="theme-input relative flex min-h-10 items-center rounded-[14px] px-3.5 py-2.5 pr-10">
-                      <IndianRupee size={14} className="text-[var(--theme-accent)]" />
-                      <input className="w-full bg-transparent pr-1 text-[13px] font-medium outline-none" value={selectedDish.price} onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))} placeholder="149" />
-                      <span className="pointer-events-none absolute right-3 top-1/2 grid h-4 w-4 -translate-y-1/2 place-items-center">
-                        {isCheckingPrice ? (
-                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--theme-accent)] border-t-transparent" />
-                        ) : null}
-                      </span>
-                    </div>
-                    <div className="min-h-[68px] pt-1">
-                      {hasCurrentPriceWarning(selectedDish) ? (
-                      <div className="rounded-[16px] border border-red-200 bg-red-50 px-3 py-2.5 text-[11px] text-red-600">
-                        <p className="inline-flex items-start gap-2 font-semibold">
-                          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                          <span>{selectedDish.priceGuidance.warningMessage}</span>
-                        </p>
-                        {(selectedDish.priceGuidance.suggestedMin || selectedDish.priceGuidance.suggestedMax) ? (
-                          <p className="mt-1 pl-6 text-[10px] font-semibold text-red-500">
-                            Suggested range: Rs {selectedDish.priceGuidance.suggestedMin || 0} - Rs {selectedDish.priceGuidance.suggestedMax || 0}
-                          </p>
-                        ) : null}
-                      </div>
-                      ) : (
-                        <div className="invisible rounded-[16px] border border-transparent px-3 py-2.5 text-[11px]">
-                          <p className="font-semibold">Price guidance placeholder</p>
-                          <p className="mt-1 text-[10px]">Suggested range placeholder</p>
+                    <div className="relative">
+                      <div className="theme-input relative flex h-11 items-center rounded-[14px] px-3.5 pr-16">
+                        <IndianRupee size={14} className="text-[var(--theme-accent)]" />
+                        <input className="w-full bg-transparent pr-1 text-[13px] font-medium outline-none" value={selectedDish.price} onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))} placeholder="149" />
+                        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+                          {isCheckingPrice ? (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--theme-accent)] border-t-transparent" />
+                          ) : null}
+                          {selectedDish.priceGuidance?.status !== 'ok' && selectedDish.priceGuidance?.warningMessage ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowPriceWarningPopup((prev) => !prev)}
+                              className="grid h-5 w-5 place-items-center rounded-full bg-red-50 text-red-500 transition hover:bg-red-100"
+                              title="View price guidance"
+                            >
+                              <AlertTriangle size={13} />
+                            </button>
+                          ) : null}
                         </div>
-                      )}
+                      </div>
+                      {showPriceWarningPopup && selectedDish.priceGuidance?.status !== 'ok' && selectedDish.priceGuidance?.warningMessage ? (
+                        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[280px] rounded-[18px] border border-red-200 bg-white p-3 text-[11px] text-red-600 shadow-[0_18px_36px_rgba(15,23,42,0.14)]">
+                          <p className="inline-flex items-start gap-2 font-semibold">
+                            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                            <span>{selectedDish.priceGuidance.warningMessage}</span>
+                          </p>
+                          {(selectedDish.priceGuidance.suggestedMin || selectedDish.priceGuidance.suggestedMax) ? (
+                            <p className="mt-2 pl-6 text-[10px] font-semibold text-red-500">
+                              Suggested price range: Rs {selectedDish.priceGuidance.suggestedMin || 0} - Rs {selectedDish.priceGuidance.suggestedMax || 0}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   </label>
                   <div className="grid gap-1.5 md:col-span-2">
