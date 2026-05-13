@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 
-function Navbar({ isRegistered = false, onRegisterClick, onNotificationClick }) {
+function Navbar({ isRegistered = false, onRegisterClick }) {
   const navigate = useNavigate()
   const [scrollProgress, setScrollProgress] = React.useState(0)
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false)
@@ -89,24 +89,6 @@ function Navbar({ isRegistered = false, onRegisterClick, onNotificationClick }) 
         </div>
 
         <div className="relative flex shrink-0 items-center gap-2 text-sm font-medium text-[#0f172a] sm:gap-3 md:gap-5" ref={profileMenuRef}>
-          <button 
-            onClick={onNotificationClick}
-            className="hidden h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:inline-flex relative"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-              <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-black text-white border-2 border-white animate-pulse">1</span>
-          </button>
 
           {isRegistered ? (
             <button
@@ -140,24 +122,6 @@ function Navbar({ isRegistered = false, onRegisterClick, onNotificationClick }) 
             </button>
           )}
 
-          <button 
-            onClick={onNotificationClick}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--theme-surface-border)] bg-white/80 text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] md:hidden relative"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
-              <path d="M13.73 21a2 2 0 01-3.46 0" />
-            </svg>
-            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500 text-[9px] font-black text-white border-2 border-white animate-pulse">1</span>
-          </button>
           {isRegistered ? (
             <button
               type="button"

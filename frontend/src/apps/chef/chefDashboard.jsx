@@ -2,28 +2,21 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
 import ChefVerificationWorkspace from './components/ChefVerificationWorkspace'
-import Popuplogin from './components/Popuplogin'
 import { chefCookieCheck, getChefMenuDraft, getChefReviewStatus } from '../../../services/chefAuthService'
 import ChefVerifiedWorkspace from './components/ChefVerifiedWorkspace'
 import ChefRejectedWorkspace from './components/ChefRejectedWorkspace'
 import ChefRegisterWorkspace from './components/ChefRegisterWorkspace'
 import ChefLiveWorkspace from './components/ChefLiveWorkspace'
 import { getChefSocket } from '../../../services/socket'
-import NewOrderPopup from './components/NewOrderPopup'
-import { Bell } from 'lucide-react'
-
-const CHEF_REGISTER_POPUP_DISMISSED_KEY = 'chef-register-popup-dismissed'
 
 const chefDashboard = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const [showPopup, setShowPopup] = useState(false)
   const [isRegistered, setIsRegistered] = useState(Boolean(location.state?.chefRegistered))
   const [reviewStatus, setReviewStatus] = useState('pending')
   const [rejectionReason, setRejectionReason] = useState('')
   const [chefId, setChefId] = useState('')
   const [menuDishCount, setMenuDishCount] = useState(0)
-  const [showOrderPopup, setShowOrderPopup] = useState(true)
   const lastRealtimeUpdateRef = useRef(0)
 
   useEffect(() => {
@@ -39,15 +32,7 @@ const chefDashboard = () => {
       setIsRegistered(registered)
 
       if (registered) {
-        sessionStorage.removeItem(CHEF_REGISTER_POPUP_DISMISSED_KEY)
-        setShowPopup(false)
-      } else if (
-        location.state?.hideChefPopup ||
-        sessionStorage.getItem(CHEF_REGISTER_POPUP_DISMISSED_KEY) === 'true'
-      ) {
-        setShowPopup(false)
-      } else {
-        setShowPopup(true)
+        setIsRegistered(true)
       }
 
       if (!registered) {
@@ -99,7 +84,6 @@ const chefDashboard = () => {
       setReviewStatus(payload?.reviewStatus || 'pending')
       setRejectionReason(payload?.rejectionReason || '')
       setIsRegistered(true)
-      setShowPopup(false)
     }
 
     socket.on('chef:approval-updated', handleReviewStatus)
@@ -143,30 +127,11 @@ const chefDashboard = () => {
       <Navbar
         isRegistered={isRegistered}
         onRegisterClick={() => navigate('/chef/register')}
-        onNotificationClick={() => setShowOrderPopup(true)}
       />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-6 pt-22 sm:px-6 lg:px-8">
         {renderWorkspace()}
       </main>
-
-      <Popuplogin
-        isOpen={showPopup && !isRegistered}
-        onClose={() => {
-          sessionStorage.setItem(CHEF_REGISTER_POPUP_DISMISSED_KEY, 'true')
-          setShowPopup(false)
-        }}
-        onRegister={setIsRegistered}
-      />
-
-      <NewOrderPopup 
-        isOpen={showOrderPopup} 
-        onClose={() => setShowOrderPopup(false)}
-        onAccept={() => {
-          alert('Order Accepted Successfully! Starting preparation...');
-          setShowOrderPopup(false);
-        }}
-      />
     </div>
   )
 }
