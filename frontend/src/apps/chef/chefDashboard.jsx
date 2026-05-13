@@ -9,6 +9,8 @@ import ChefRejectedWorkspace from './components/ChefRejectedWorkspace'
 import ChefRegisterWorkspace from './components/ChefRegisterWorkspace'
 import ChefLiveWorkspace from './components/ChefLiveWorkspace'
 import { getChefSocket } from '../../../services/socket'
+import NewOrderPopup from './components/NewOrderPopup'
+import { Bell } from 'lucide-react'
 
 const CHEF_REGISTER_POPUP_DISMISSED_KEY = 'chef-register-popup-dismissed'
 
@@ -21,6 +23,7 @@ const chefDashboard = () => {
   const [rejectionReason, setRejectionReason] = useState('')
   const [chefId, setChefId] = useState('')
   const [menuDishCount, setMenuDishCount] = useState(0)
+  const [showOrderPopup, setShowOrderPopup] = useState(true)
   const lastRealtimeUpdateRef = useRef(0)
 
   useEffect(() => {
@@ -140,6 +143,7 @@ const chefDashboard = () => {
       <Navbar
         isRegistered={isRegistered}
         onRegisterClick={() => navigate('/chef/register')}
+        onNotificationClick={() => setShowOrderPopup(true)}
       />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pb-6 pt-22 sm:px-6 lg:px-8">
@@ -153,6 +157,15 @@ const chefDashboard = () => {
           setShowPopup(false)
         }}
         onRegister={setIsRegistered}
+      />
+
+      <NewOrderPopup 
+        isOpen={showOrderPopup} 
+        onClose={() => setShowOrderPopup(false)}
+        onAccept={() => {
+          alert('Order Accepted Successfully! Starting preparation...');
+          setShowOrderPopup(false);
+        }}
       />
     </div>
   )

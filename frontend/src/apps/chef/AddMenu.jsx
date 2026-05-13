@@ -155,11 +155,10 @@ function ToggleChip({ active, children, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
-          : 'border-slate-200 bg-white text-[var(--theme-muted)] hover:border-[var(--theme-chip-border)]'
-      }`}
+      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active
+        ? 'border-[var(--theme-accent)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
+        : 'border-slate-200 bg-white text-[var(--theme-muted)] hover:border-[var(--theme-chip-border)]'
+        }`}
     >
       {children}
     </button>
@@ -171,11 +170,10 @@ function DishPreview({ dish, selected, onClick, onRemove }) {
     <button
       type="button"
       onClick={onClick}
-      className={`group relative w-full rounded-[14px] border p-2 text-left transition ${
-        selected
-          ? 'border-[var(--theme-accent)] bg-[linear-gradient(180deg,#fffaf4,#fff3e7)] shadow-[0_4px_12px_rgba(249,115,22,0.08)]'
-          : 'border-[rgba(249,115,22,0.14)] bg-white hover:-translate-y-0.5 hover:shadow-sm'
-      }`}
+      className={`group relative w-full rounded-[14px] border p-2 text-left transition ${selected
+        ? 'border-[var(--theme-accent)] bg-[linear-gradient(180deg,#fffaf4,#fff3e7)] shadow-[0_4px_12px_rgba(249,115,22,0.08)]'
+        : 'border-[rgba(249,115,22,0.14)] bg-white hover:-translate-y-0.5 hover:shadow-sm'
+        }`}
     >
       <div className="flex gap-2.5 items-center">
         <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-[10px] border border-[var(--theme-chip-border)] bg-[linear-gradient(135deg,#fff7ef,#ffffff)] text-[var(--theme-accent)]">
@@ -204,9 +202,8 @@ function DishPreview({ dish, selected, onClick, onRemove }) {
                 {dish.prepTime}m
               </span>
               <span className="text-[10px] text-slate-300">•</span>
-              <span className={`text-[10px] font-semibold ${
-                dish.available ? 'text-emerald-600' : 'text-red-500'
-              }`}>
+              <span className={`text-[10px] font-semibold ${dish.available ? 'text-emerald-600' : 'text-red-500'
+                }`}>
                 {dish.available ? 'Avail' : 'Paused'}
               </span>
             </div>
@@ -509,15 +506,50 @@ function AddMenu() {
       <Navbar isRegistered onRegisterClick={() => navigate('/chef/register')} />
 
       <main className="mx-auto flex max-w-6xl flex-col gap-5 px-4 pb-8 pt-22 sm:px-6 lg:px-8">
-        <section className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate('/chef/dashboard')}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-chip-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:bg-slate-50 hover:shadow-md"
-          >
-            <ArrowLeft size={16} />
-            Back to dashboard
-          </button>
+        <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <button
+              type="button"
+              onClick={() => navigate('/chef/dashboard')}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--theme-chip-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--theme-text)] shadow-[var(--theme-shadow-soft)] transition hover:bg-slate-50 hover:shadow-md"
+            >
+              <ArrowLeft size={16} />
+              Back to dashboard
+            </button>
+
+            {/* Stats Boxes */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-[18px] border border-slate-100 bg-white px-4 py-2 shadow-sm transition hover:shadow-md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
+                  <UtensilsCrossed size={14} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Items</p>
+                  <p className="text-sm font-black text-slate-800">{dishes.length}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-[18px] border border-emerald-50 bg-white px-4 py-2 shadow-sm transition hover:shadow-md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500">
+                  <Leaf size={14} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Veg</p>
+                  <p className="text-sm font-black text-slate-800">{dishes.filter(d => d.category === 'Veg').length}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-[18px] border border-rose-50 bg-white px-4 py-2 shadow-sm transition hover:shadow-md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-rose-500">
+                  <Drumstick size={14} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Non-Veg</p>
+                  <p className="text-sm font-black text-slate-800">{dishes.filter(d => d.category === 'Non-Veg').length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
           <button
             type="button"
             onClick={addDish}
@@ -631,44 +663,47 @@ function AddMenu() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="grid gap-2">
+                <div className="grid gap-x-5 gap-y-3 md:grid-cols-2">
+                  <label className="flex flex-col gap-0.5">
                     <span className={labelCls}>Dish name</span>
-                    <input className={fieldCls} value={selectedDish.name} onChange={(event) => updateDish('name', event.target.value)} placeholder="Paneer thali" />
-                  </label>
-                  <label className="grid gap-2">
-                    <span className={labelCls}>Price</span>
-                    <div className="theme-input relative flex min-h-10 items-center rounded-[14px] px-3.5 py-2.5 pr-10">
-                      <IndianRupee size={14} className="text-[var(--theme-accent)]" />
-                      <input className="w-full bg-transparent pr-1 text-[13px] font-medium outline-none" value={selectedDish.price} onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))} placeholder="149" />
-                      <span className="pointer-events-none absolute right-3 top-1/2 grid h-4 w-4 -translate-y-1/2 place-items-center">
-                        {isCheckingPrice ? (
-                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--theme-accent)] border-t-transparent" />
-                        ) : null}
-                      </span>
+                    <div className="theme-input relative flex items-center rounded-[14px] px-3.5 py-2 transition-all focus-within:ring-2 focus-within:ring-orange-100 group">
+                      <UtensilsCrossed size={16} className="text-slate-400 group-focus-within:text-orange-500 transition-colors shrink-0" />
+                      <input
+                        className="w-full bg-transparent ml-3 text-[13px] font-medium outline-none placeholder:text-slate-300"
+                        value={selectedDish.name}
+                        onChange={(event) => updateDish('name', event.target.value)}
+                        placeholder="e.g. Special Paneer Thali"
+                      />
                     </div>
-                    <div className="min-h-[68px] pt-1">
-                      {hasCurrentPriceWarning(selectedDish) ? (
-                      <div className="rounded-[16px] border border-red-200 bg-red-50 px-3 py-2.5 text-[11px] text-red-600">
-                        <p className="inline-flex items-start gap-2 font-semibold">
-                          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                          <span>{selectedDish.priceGuidance.warningMessage}</span>
-                        </p>
-                        {(selectedDish.priceGuidance.suggestedMin || selectedDish.priceGuidance.suggestedMax) ? (
-                          <p className="mt-1 pl-6 text-[10px] font-semibold text-red-500">
-                            Suggested range: Rs {selectedDish.priceGuidance.suggestedMin || 0} - Rs {selectedDish.priceGuidance.suggestedMax || 0}
-                          </p>
-                        ) : null}
+                  </label>
+                  <label className="flex flex-col gap-0.5">
+                    <span className={labelCls}>Price</span>
+                    <div className="theme-input relative flex items-center rounded-[14px] px-3.5 py-2 transition-all focus-within:ring-2 focus-within:ring-orange-100 group">
+                      <div className="flex items-center gap-1 text-[var(--theme-accent)] font-bold shrink-0">
+                        <IndianRupee size={14} className="stroke-[3]" />
                       </div>
-                      ) : (
-                        <div className="invisible rounded-[16px] border border-transparent px-3 py-2.5 text-[11px]">
-                          <p className="font-semibold">Price guidance placeholder</p>
-                          <p className="mt-1 text-[10px]">Suggested range placeholder</p>
+                      <input
+                        className="w-full bg-transparent ml-2 text-[13px] font-black outline-none placeholder:text-slate-300"
+                        value={selectedDish.price}
+                        onChange={(event) => updateDish('price', event.target.value.replace(/\D/g, ''))}
+                        placeholder="149"
+                      />
+                      {isCheckingPrice && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--theme-accent)] border-t-transparent block" />
                         </div>
                       )}
                     </div>
+                    {hasCurrentPriceWarning(selectedDish) && (
+                      <div className="mt-1.5 rounded-[14px] border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-600">
+                        <p className="inline-flex items-start gap-2 font-semibold">
+                          <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                          <span>{selectedDish.priceGuidance.warningMessage}</span>
+                        </p>
+                      </div>
+                    )}
                   </label>
-                  <div className="grid gap-1.5 md:col-span-2">
+                  <div className="grid gap-0.5 md:col-span-2">
                     <div className="flex items-center justify-between">
                       <span className={labelCls}>Description</span>
                       <button
@@ -685,11 +720,11 @@ function AddMenu() {
                         {isGeneratingDescAI ? 'Generating...' : 'AI Generate'}
                       </button>
                     </div>
-                    <textarea className="theme-input min-h-16 rounded-[14px] px-3.5 py-2.5 text-[13px] font-medium resize-none leading-relaxed" value={selectedDish.description} onChange={(event) => updateDish('description', event.target.value)} placeholder="Briefly describe your dish." />
+                    <textarea className="theme-input min-h-16 rounded-[14px] px-3.5 py-2 text-[13px] font-medium resize-none leading-relaxed" value={selectedDish.description} onChange={(event) => updateDish('description', event.target.value)} placeholder="Briefly describe your dish." />
                   </div>
-                  <div className="grid gap-2 relative">
+                  <div className="grid gap-0.5 relative">
                     <span className={labelCls}>Category</span>
-                    
+
                     {isCategoryOpen && (
                       <div className="fixed inset-0 z-10" onClick={() => setIsCategoryOpen(false)} />
                     )}
@@ -697,14 +732,14 @@ function AddMenu() {
                     <button
                       type="button"
                       onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                      className={`${fieldCls} flex items-center justify-between bg-white text-left transition hover:border-[var(--theme-accent)] relative z-20`}
+                      className="theme-input flex min-h-10 items-center justify-between rounded-[14px] px-3.5 py-2 text-[13px] font-medium bg-white text-left transition hover:border-[var(--theme-accent)] relative z-20"
                     >
                       <span className="flex items-center gap-2">
                         {selectedDish.category}
                       </span>
                       <ChevronDown size={14} className={`text-[var(--theme-muted)] transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {isCategoryOpen && (
                       <div className="absolute top-full mt-2 w-full z-30 rounded-[20px] border border-[var(--theme-chip-border)] bg-[#fcfaf8] p-1.5 shadow-[0_12px_32px_rgba(249,115,22,0.1)]">
                         <div className="flex flex-col gap-0.5">
@@ -719,11 +754,10 @@ function AddMenu() {
                                   updateDish('category', cat.id)
                                   setIsCategoryOpen(false)
                                 }}
-                                className={`group flex w-full items-center gap-2.5 rounded-[14px] p-2 text-left transition-all ${
-                                  isSelected
-                                    ? 'bg-white shadow-[0_2px_8px_rgba(249,115,22,0.06)] border border-[rgba(249,115,22,0.15)]'
-                                    : 'border border-transparent hover:bg-white hover:border-[rgba(249,115,22,0.1)] hover:shadow-[0_2px_8px_rgba(249,115,22,0.04)]'
-                                }`}
+                                className={`group flex w-full items-center gap-2.5 rounded-[14px] p-2 text-left transition-all ${isSelected
+                                  ? 'bg-white shadow-[0_2px_8px_rgba(249,115,22,0.06)] border border-[rgba(249,115,22,0.15)]'
+                                  : 'border border-transparent hover:bg-white hover:border-[rgba(249,115,22,0.1)] hover:shadow-[0_2px_8px_rgba(249,115,22,0.04)]'
+                                  }`}
                               >
                                 <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-[10px] transition-colors ${isSelected ? 'text-[var(--theme-accent)] bg-[var(--theme-accent-soft)]' : 'text-slate-400 bg-slate-100 group-hover:text-[var(--theme-accent)]'}`}>
                                   <Icon size={15} strokeWidth={isSelected ? 2.5 : 2} />
@@ -740,21 +774,21 @@ function AddMenu() {
                       </div>
                     )}
                   </div>
-                  <label className="grid gap-2">
+                  <label className="grid gap-0.5">
                     <span className={labelCls}>Preparation time</span>
-                    <div className="theme-input flex min-h-10 items-center gap-2 rounded-[14px] px-3.5 py-2.5">
+                    <div className="theme-input flex min-h-10 items-center gap-2 rounded-[14px] px-3.5 py-2">
                       <Clock3 size={14} className="text-[var(--theme-accent)]" />
                       <input className="w-full bg-transparent text-[13px] font-medium outline-none" value={selectedDish.prepTime} onChange={(event) => updateDish('prepTime', event.target.value.replace(/\D/g, ''))} placeholder="20" />
                       <span className="text-[11px] font-semibold text-[var(--theme-muted)]">min</span>
                     </div>
                   </label>
-                  <label className="grid gap-2">
+                  <label className="grid gap-0.5">
                     <span className={labelCls}>Serving size</span>
-                    <input className={fieldCls} value={selectedDish.servingSize} onChange={(event) => updateDish('servingSize', event.target.value)} placeholder="1 person" />
+                    <input className="theme-input min-h-10 rounded-[14px] px-3.5 py-2 text-[13px] font-medium" value={selectedDish.servingSize} onChange={(event) => updateDish('servingSize', event.target.value)} placeholder="1 person" />
                   </label>
-                  <label className="grid gap-2">
+                  <label className="grid gap-0.5">
                     <span className={labelCls}>Add-ons</span>
-                    <input className={fieldCls} value={selectedDish.addOns} onChange={(event) => updateDish('addOns', event.target.value)} placeholder="Extra roti, curd" />
+                    <input className="theme-input min-h-10 rounded-[14px] px-3.5 py-2 text-[13px] font-medium" value={selectedDish.addOns} onChange={(event) => updateDish('addOns', event.target.value)} placeholder="Extra roti, curd" />
                   </label>
                 </div>
 
@@ -784,7 +818,7 @@ function AddMenu() {
                           {tag}
                         </ToggleChip>
                       ))}
-                      
+
                       <form onSubmit={(e) => {
                         e.preventDefault()
                         const val = customTagInput.trim()
