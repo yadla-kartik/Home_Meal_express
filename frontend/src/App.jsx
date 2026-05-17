@@ -4,6 +4,7 @@ import Login from './apps/user/auth/Login'
 import Otp from './apps/user/auth/Otp'
 import UserDashboard from './apps/user/UserDashboard'
 import ChefDashboard from './apps/chef/chefDashboard'
+import ChefOrdersPage from './apps/chef/ChefOrdersPage'
 import ChefRegister from './apps/chef/auth/Register'
 import AddMenu from './apps/chef/AddMenu'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -29,6 +30,7 @@ import OrderCartPage from './components/OrderCartPage'
 import OrderBillingPage from './components/OrderBillingPage'
 import OrderPaymentPage from './components/OrderPaymentPage'
 import OrderConfirmationPage from './components/OrderConfirmationPage'
+import UserOrderDetailsPage from './components/UserOrderDetailsPage'
 
 const isChefAuthorized = (res) => Boolean(res?.chefUser)
 const isDeliveryAuthorized = (res) => Boolean(res?.deliveryBoy)
@@ -104,6 +106,32 @@ function App() {
             loadingLabel="Loading..."
           >
             <AddMenu />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chef/orders"
+        element={
+          <ProtectedRoute
+            authCheck={chefCookieCheck}
+            isAuthorized={isChefAuthorized}
+            redirectTo="/chef/login"
+            loadingLabel="Loading..."
+          >
+            <ChefOrdersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chef/orders/:orderId"
+        element={
+          <ProtectedRoute
+            authCheck={chefCookieCheck}
+            isAuthorized={isChefAuthorized}
+            redirectTo="/chef/login"
+            loadingLabel="Loading..."
+          >
+            <ChefOrdersPage />
           </ProtectedRoute>
         }
       />
@@ -199,6 +227,14 @@ function App() {
       <Route path="/station/:stationCode/chef/:chefId/billing" element={<OrderBillingPage />} />
       <Route path="/station/:stationCode/chef/:chefId/payment" element={<OrderPaymentPage />} />
       <Route path="/station/:stationCode/chef/:chefId/bill" element={<OrderConfirmationPage />} />
+      <Route
+        path="/orders/:orderId"
+        element={
+          <ProtectedRoute>
+            <UserOrderDetailsPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }

@@ -372,3 +372,33 @@ export const createJourneyOrder = async (data) => {
     return err.response?.data || { success: false, message: 'Network error while saving your order.' }
   }
 }
+
+export const saveOrderDraft = async (data) => {
+  try {
+    const res = await api.post('/login/orders/draft', data)
+    return res.data
+  } catch (err) {
+    console.error('Error saving order draft:', err)
+    return err.response?.data || { success: false, message: 'Network error while saving order draft.' }
+  }
+}
+
+export const getUserOrders = async () => {
+  try {
+    const res = await api.get('/login/orders')
+    return res.data
+  } catch (err) {
+    console.error('Error fetching user orders:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching your orders.' }
+  }
+}
+
+export const getUserOrderDetails = async (orderId) => {
+  try {
+    const res = await api.get(`/login/orders/${orderId}`)
+    return res.data
+  } catch (err) {
+    console.error('Error fetching user order details:', err)
+    return err.response?.data || { success: false, message: 'Network error while fetching order details.' }
+  }
+}

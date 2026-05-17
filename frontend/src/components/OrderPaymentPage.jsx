@@ -1,6 +1,5 @@
 import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { motion as Motion } from 'framer-motion'
 import {
   ArrowRight,
   BadgeCheck,
@@ -8,10 +7,9 @@ import {
   CreditCard,
   Landmark,
   Loader2,
-  ShieldCheck,
   Smartphone,
 } from 'lucide-react'
-import { createJourneyOrder } from '../../services/userAuthService'
+import { createJourneyOrder, saveOrderDraft } from '../../services/userAuthService'
 import OrderJourneyShell from './orderJourney/OrderJourneyShell'
 import OrderSummaryCard from './orderJourney/OrderSummaryCard'
 import {
@@ -38,6 +36,7 @@ function OrderPaymentPage() {
   const navigate = useNavigate()
   const [draft, setDraft] = React.useState(() => readOrderDraft())
   const [selectedMethod, setSelectedMethod] = React.useState('upi')
+  const [upiId, setUpiId] = React.useState('')
   const [processing, setProcessing] = React.useState(false)
   const [error, setError] = React.useState('')
 
@@ -45,6 +44,7 @@ function OrderPaymentPage() {
     const nextDraft = readOrderDraft()
     setDraft(nextDraft)
     setSelectedMethod(nextDraft?.payment?.method || 'upi')
+    setUpiId(nextDraft?.payment?.upiId || '')
   }, [stationCode, chefId])
 
   const hasMatchingDraft = doesDraftMatchRoute(draft, stationCode, chefId)
@@ -60,10 +60,28 @@ function OrderPaymentPage() {
       }
   const summary = safeDraft.summary || calculateOrderSummary(safeDraft.items)
 
-  const persistPaymentChoice = (method) => {
-    setSelectedMethod(method)
-    setError('')
+  React.useEffect(() => {
+    if (!hasMatchingDraft || !safeDraft.items?.length) return
 
+    saveOrderDraft({
+      pnr: safeDraft.pnrInput || safeDraft.pnrData?.pnr || '',
+      pnrData: safeDraft.pnrData,
+      selectedStation: safeDraft.selectedStation,
+      chefId,
+      chef: safeDraft.chef,
+      cartItems: safeDraft.items,
+      billing: summary,
+      currentStep: 'payment',
+      payment: {
+        mode: DEFAULT_PAYMENT_MODE,
+        method: selectedMethod,
+        provider: DEFAULT_PAYMENT_PROVIDER,
+        upiId,
+      },
+    })
+  }, [chefId, hasMatchingDraft, safeDraft, selectedMethod, summary, upiId])
+
+  const savePaymentDraft = (method, nextUpiId = upiId) => {
     if (!hasMatchingDraft) return
 
     const nextDraft = {
@@ -72,14 +90,24 @@ function OrderPaymentPage() {
         mode: DEFAULT_PAYMENT_MODE,
         method,
         provider: DEFAULT_PAYMENT_PROVIDER,
+        upiId: nextUpiId,
       },
     }
 
     writeOrderDraft(nextDraft)
-    setDraft({
-      ...nextDraft,
-      summary: calculateOrderSummary(nextDraft.items),
-    })
+    setDraft({ ...nextDraft, summary: calculateOrderSummary(nextDraft.items) })
+  }
+
+  const persistPaymentChoice = (method) => {
+    setSelectedMethod(method)
+    setError('')
+    savePaymentDraft(method)
+  }
+
+  const handleUpiChange = (event) => {
+    const value = event.target.value
+    setUpiId(value)
+    savePaymentDraft(selectedMethod, value)
   }
 
   const handleBack = () => navigate(`/station/${stationCode}/chef/${chefId}/billing`)
@@ -87,6 +115,11 @@ function OrderPaymentPage() {
   const handlePayNow = async () => {
     if (!hasMatchingDraft || !safeDraft.items?.length) {
       navigate(`/station/${stationCode}/chef/${chefId}`)
+      return
+    }
+
+    if (selectedMethod === 'upi' && !upiId.trim()) {
+      setError('Please enter a UPI ID to continue with payment.')
       return
     }
 
@@ -106,6 +139,7 @@ function OrderPaymentPage() {
         mode: DEFAULT_PAYMENT_MODE,
         method: selectedMethod,
         provider: DEFAULT_PAYMENT_PROVIDER,
+        upiId: selectedMethod === 'upi' ? upiId.trim() : '',
       },
       source: 'pnr',
     })
@@ -127,154 +161,108 @@ function OrderPaymentPage() {
 
   return (
     <OrderJourneyShell
-      draft={safeDraft}
       currentStep="payment"
-      title="Choose Online Payment"
-      description="Cash on delivery remove karke yahan sirf online payment options rakhe gaye hain. Final place-order action isi step se backend me save hoga."
+      title="Payment"
+      description="Choose an online payment method, enter a UPI ID when needed, and place the order."
       onBack={handleBack}
-      backLabel="Back to Billing"
-      sidebar={<OrderSummaryCard draft={safeDraft} title="Payable Summary" showHint={false} />}
+      backLabel="Billing"
+      sidebar={<OrderSummaryCard draft={safeDraft} title="Payable" />}
     >
-      <div className="space-y-5">
-        <div className="theme-card rounded-[30px] p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                Online Payment Only
-              </p>
-              <h2 className="mt-2 text-[24px] font-black text-[var(--theme-text)]">
-                Select how the user will pay
-              </h2>
-              <p className="mt-2 text-[14px] leading-7 text-[var(--theme-muted)]">
-                Abhi ke liye normal online selection screen rakhi gayi hai. Gateway integration baad me aasani se wire ki ja sakti hai.
-              </p>
-            </div>
-
-            <div className="rounded-[22px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[12px] leading-6 text-emerald-700">
-              <div className="flex items-center gap-2 font-semibold">
-                <ShieldCheck size={15} />
-                Secure placeholder payment flow
-              </div>
-              <p className="mt-1">Selected method and total amount backend DB me store hoga.</p>
-            </div>
+      <div className="theme-card rounded-[22px] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 border-b border-[color:var(--theme-surface-border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-accent)]">
+              Online Payment
+            </p>
+            <h2 className="mt-1 text-[22px] font-black text-[var(--theme-text)]">Choose method</h2>
+          </div>
+          <div className="rounded-[16px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-4 py-2 text-right">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--theme-muted)]">Pay</p>
+            <p className="text-[20px] font-black text-[var(--theme-accent)]">{formatMoney(summary.totalAmount)}</p>
           </div>
         </div>
 
-        <div className="grid gap-4">
-          {ONLINE_PAYMENT_OPTIONS.map((option, index) => {
+        <div className="mt-4 grid gap-3">
+          {ONLINE_PAYMENT_OPTIONS.map((option) => {
             const Icon = METHOD_ICONS[option.id] || CreditCard
             const isActive = selectedMethod === option.id
 
             return (
-              <Motion.button
+              <button
                 key={option.id}
                 type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.28 }}
                 onClick={() => persistPaymentChoice(option.id)}
-                className={`text-left transition ${
+                className={`rounded-[18px] border p-3 text-left transition ${
                   isActive
-                    ? 'theme-card rounded-[30px] border-[var(--theme-chip-border)] bg-[linear-gradient(135deg,rgba(255,244,234,0.98),rgba(255,255,255,0.98))] p-5 shadow-[var(--theme-shadow-card-lg)]'
-                    : 'theme-card rounded-[30px] p-5 hover:-translate-y-0.5'
+                    ? 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] shadow-[var(--theme-shadow-soft)]'
+                    : 'border-[color:var(--theme-surface-border)] bg-white hover:border-[var(--theme-chip-border)]'
                 }`}
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className={`grid h-14 w-14 place-items-center rounded-[22px] border ${
-                      isActive
-                        ? 'border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
-                        : 'border-[color:var(--theme-surface-border)] bg-white text-[var(--theme-muted)]'
-                    }`}>
-                      <Icon size={22} />
-                    </div>
-
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-[18px] font-bold text-[var(--theme-text)]">{option.title}</h3>
-                        {isActive ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
-                            <BadgeCheck size={12} />
-                            Selected
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-[13px] font-medium text-[var(--theme-accent)]">{option.subtitle}</p>
-                      <p className="mt-2 max-w-2xl text-[13px] leading-6 text-[var(--theme-muted)]">
-                        {option.description}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] ${isActive ? 'bg-[var(--theme-accent)] text-white' : 'bg-slate-50 text-[var(--theme-muted)]'}`}>
+                    <Icon size={18} />
                   </div>
-
-                  <div className="rounded-[20px] border border-[color:var(--theme-surface-border)] bg-white px-4 py-3 text-right shadow-[var(--theme-shadow-soft)]">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">
-                      Pay now
-                    </p>
-                    <p className="mt-1 text-[18px] font-black text-[var(--theme-text)]">{formatMoney(summary.totalAmount)}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-[14px] font-black text-[var(--theme-text)]">{option.title}</h3>
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                          <BadgeCheck size={11} />
+                          Selected
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-[12px] text-[var(--theme-muted)]">{option.subtitle}</p>
                   </div>
                 </div>
-              </Motion.button>
+              </button>
             )
           })}
         </div>
 
-        {error ? (
-          <div className="rounded-[24px] border border-rose-200 bg-rose-50 px-5 py-4 text-[13px] leading-6 text-rose-700">
-            <div className="flex items-center gap-2 font-semibold">
-              <CircleAlert size={16} />
-              Payment step needs attention
-            </div>
-            <p className="mt-2">{error}</p>
+        {selectedMethod === 'upi' ? (
+          <div className="mt-4 rounded-[18px] border border-[color:var(--theme-surface-border)] bg-white p-4">
+            <label htmlFor="upiId" className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--theme-muted)]">
+              UPI ID
+            </label>
+            <input
+              id="upiId"
+              type="text"
+              value={upiId}
+              onChange={handleUpiChange}
+              placeholder="name@upi"
+              className="mt-2 w-full rounded-[14px] border border-[color:var(--theme-surface-border)] bg-slate-50 px-4 py-3 text-[14px] font-semibold text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:bg-white"
+            />
           </div>
         ) : null}
 
-        <div className="theme-card rounded-[30px] p-5 sm:p-6">
-          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                Final action
-              </p>
-              <h3 className="mt-2 text-[22px] font-black text-[var(--theme-text)]">
-                Confirm payment and place the order
-              </h3>
-              <p className="mt-2 text-[14px] leading-7 text-[var(--theme-muted)]">
-                Is button ke baad backend final order create karega, invoice number generate karega, aur payment method/reference save karega.
-              </p>
-            </div>
-
-            <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-[linear-gradient(180deg,rgba(255,247,238,0.9),rgba(255,255,255,0.96))] px-5 py-4 text-right">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">
-                Selected method
-              </p>
-              <p className="mt-1 text-[18px] font-black capitalize text-[var(--theme-text)]">{selectedMethod}</p>
-              <p className="mt-2 text-[26px] font-black text-[var(--theme-accent)]">{formatMoney(summary.totalAmount)}</p>
-            </div>
+        {error ? (
+          <div className="mt-4 rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[12px] font-semibold leading-5 text-rose-700">
+            <span className="inline-flex items-center gap-2">
+              <CircleAlert size={15} />
+              {error}
+            </span>
           </div>
+        ) : null}
 
-          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_auto]">
-            <div className="rounded-[24px] border border-[color:var(--theme-surface-border)] bg-white px-5 py-4 text-[13px] leading-6 text-[var(--theme-muted)]">
-              Order will be stored with payment mode `online`, chosen payment method, total billing, chef snapshot, station details, and passenger-linked PNR data.
-            </div>
-
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={processing}
-              className="theme-soft-button rounded-[18px] px-5 py-3 text-[14px] font-semibold disabled:opacity-60"
-            >
-              Back to Billing
-            </button>
-
-            <button
-              type="button"
-              onClick={handlePayNow}
-              disabled={processing || !hasMatchingDraft || !safeDraft.items?.length}
-              className="theme-primary-button inline-flex items-center justify-center gap-2 rounded-[18px] px-6 py-3 text-[14px] font-semibold disabled:opacity-60"
-            >
-              {processing ? <Loader2 size={16} className="animate-spin" /> : 'Pay & Place Order'}
-              <ArrowRight size={16} />
-            </button>
-          </div>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={processing}
+            className="theme-soft-button rounded-[16px] px-5 py-3 text-[13px] font-bold disabled:opacity-60"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={handlePayNow}
+            disabled={processing || !hasMatchingDraft || !safeDraft.items?.length}
+            className="theme-primary-button inline-flex items-center justify-center gap-2 rounded-[16px] px-5 py-3 text-[13px] font-bold disabled:opacity-60"
+          >
+            {processing ? <Loader2 size={15} className="animate-spin" /> : 'Done & Place Order'}
+            <ArrowRight size={15} />
+          </button>
         </div>
       </div>
     </OrderJourneyShell>

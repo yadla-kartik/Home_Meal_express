@@ -307,3 +307,53 @@ export const submitDeliveryRegistration = async (data) => {
     return err.response?.data ?? null
   }
 }
+
+export const getAvailableDeliveryOrders = async () => {
+  try {
+    const res = await api.get('/delivery/orders/available')
+    return res.data
+  } catch (err) {
+    console.log('Error occured while fetching delivery orders', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const getDeliveryOrderDetails = async (orderId) => {
+  try {
+    const res = await api.get(`/delivery/orders/${orderId}`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while fetching delivery order details', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const acceptDeliveryOrder = async (orderId) => {
+  try {
+    const res = await api.patch(`/delivery/orders/${orderId}/accept`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while accepting delivery order', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const markDeliveryOrderPickedUp = async (orderId) => {
+  try {
+    const res = await api.patch(`/delivery/orders/${orderId}/picked-up`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while marking delivery picked up', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const markDeliveryOrderDelivered = async (orderId) => {
+  try {
+    const res = await api.patch(`/delivery/orders/${orderId}/delivered`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while marking delivery completed', err.message)
+    return err.response?.data ?? null
+  }
+}

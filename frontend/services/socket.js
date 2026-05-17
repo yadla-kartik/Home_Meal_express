@@ -3,6 +3,7 @@ import { io } from 'socket.io-client'
 let adminSocket = null
 let chefSocket = null
 let deliverySocket = null
+let userSocket = null
 const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 
 export const getAdminSocket = () => {
@@ -36,4 +37,15 @@ export const getDeliverySocket = () => {
   }
 
   return deliverySocket
+}
+
+export const getUserSocket = () => {
+  if (!userSocket) {
+    userSocket = io(socketUrl, {
+      withCredentials: true,
+      autoConnect: false,
+    })
+  }
+
+  return userSocket
 }

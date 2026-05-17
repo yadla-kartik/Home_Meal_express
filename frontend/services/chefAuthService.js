@@ -108,3 +108,53 @@ export const generateChefDishDescription = async (data) => {
     return err.response?.data ?? null
   }
 }
+
+export const getChefOrders = async (view = 'active') => {
+  try {
+    const res = await api.get('/chef/orders', { params: { view } })
+    return res.data
+  } catch (err) {
+    console.log('Error occured while fetching chef orders', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const getChefOrderDetails = async (orderId) => {
+  try {
+    const res = await api.get(`/chef/orders/${orderId}`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while fetching chef order details', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const acceptChefOrder = async (orderId) => {
+  try {
+    const res = await api.patch(`/chef/orders/${orderId}/accept`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while accepting chef order', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const markChefOrderItemDone = async (orderId, itemIndex) => {
+  try {
+    const res = await api.patch(`/chef/orders/${orderId}/items/${itemIndex}/done`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while marking chef order item done', err.message)
+    return err.response?.data ?? null
+  }
+}
+
+export const markChefOrderReadyForPickup = async (orderId) => {
+  try {
+    const res = await api.patch(`/chef/orders/${orderId}/ready-for-pickup`)
+    return res.data
+  } catch (err) {
+    console.log('Error occured while marking chef order ready', err.message)
+    return err.response?.data ?? null
+  }
+}

@@ -3,6 +3,8 @@ const chefAuth = require('../models/chefAuth')
 const chefMenu = require('../models/chefMenu')
 const chefRegister = require('../models/chefRegister')
 const userOrder = require('../models/userOrder')
+const userOrderDraft = require('../models/userOrderDraft')
+const { emitToChef } = require('../socket')
 const {
   buildDemoAvailableStations,
   buildDemoPnrSnapshot,
@@ -46,6 +48,30 @@ const DEFAULT_PAYMENT_PROVIDER = 'demo_gateway'
 
 const roundCurrency = (value) =>
   Math.round((toNumber(value, 0) + Number.EPSILON) * 100) / 100
+
+const calculateBillingSummary = (items = []) => {
+  const normalizedItems = Array.isArray(items) ? items : []
+  const totalItems = normalizedItems.reduce((sum, item) => sum + Math.max(0, toNumber(item?.quantity, 0)), 0)
+  const subtotal = roundCurrency(
+    normalizedItems.reduce((sum, item) => {
+      const price = Math.max(0, toNumber(item?.price, 0))
+      const quantity = Math.max(0, toNumber(item?.quantity, 0))
+      return sum + price * quantity
+    }, 0),
+  )
+  const gstAmount = roundCurrency(subtotal * FOOD_GST_RATE)
+  const totalAmount = roundCurrency(subtotal + gstAmount + DELIVERY_CHARGE)
+
+  return {
+    totalItems,
+    subtotal,
+    gstRate: FOOD_GST_RATE,
+    gstAmount,
+    deliveryCharge: DELIVERY_CHARGE,
+    totalAmount,
+    currency: DEFAULT_CURRENCY,
+  }
+}
 
 const buildReference = (prefix) => {
   const dateStamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
@@ -131,11 +157,29 @@ const fetchIrctcJson = async (path) => {
   if (!response.ok) {
     return {
       success: false,
+      status: response.status,
       error: body?.error || body?.message || body || `HTTP ${response.status}`,
+      code: response.status === 429 ? 'RATE_LIMIT' : response.status === 401 || response.status === 403 ? 'AUTH' : 'HTTP_ERROR',
     }
   }
 
-  return body
+  if (body?.success === false || body?.type === 'error') {
+    return {
+      success: false,
+      error: body?.message || body?.error || 'IRCTC request failed.',
+      code: 'API_ERROR',
+      data: body?.data || null,
+    }
+  }
+
+  if (body?.success === true) {
+    return body
+  }
+
+  return {
+    success: true,
+    data: body?.data || body,
+  }
 }
 
 const normalizePnrSnapshot = (pnr, payload = {}) => {
@@ -173,6 +217,21 @@ const normalizePnrSnapshot = (pnr, payload = {}) => {
       }
     }),
   }
+}
+
+const hasUsablePnrSnapshot = (pnrData) =>
+  Boolean(pnrData?.pnr && pnrData?.trainNumber && pnrData?.trainName)
+
+const canUseDemoFallback = (result) => {
+  const message = String(result?.error || '').toLowerCase()
+  return (
+    isDemoPnrEnabled() &&
+    result?.code !== 'RATE_LIMIT' &&
+    result?.code !== 'AUTH' &&
+    !message.includes('usage limit') &&
+    !message.includes('billing') &&
+    !message.includes('api key')
+  )
 }
 
 const normalizeStationToken = (value) =>
@@ -302,6 +361,35 @@ const formatDistanceLabel = (station = {}) => {
   return /km$/i.test(raw) ? raw : `${raw} km`
 }
 
+const extractMinutes = (value) => {
+  const match = String(value || '').match(/\d+/)
+  return match ? Number(match[0]) : 0
+}
+
+const getStationMinutesFromNow = (station = {}) => {
+  const timeText = station.liveArrival || station.scheduledArrival || station.liveDeparture || station.scheduledDeparture
+  if (!timeText) return Number.POSITIVE_INFINITY
+
+  const match = String(timeText).match(/(\d{1,2}):(\d{2})/)
+  if (!match) return Number.POSITIVE_INFINITY
+
+  const now = new Date()
+  const stationTime = new Date(now)
+  stationTime.setHours(Number(match[1]), Number(match[2]), 0, 0)
+  if (stationTime.getTime() < now.getTime()) {
+    stationTime.setDate(stationTime.getDate() + 1)
+  }
+
+  return Math.round((stationTime.getTime() - now.getTime()) / 60000)
+}
+
+const canChefPrepareForStation = (chef = {}, dish = {}, station = {}) => {
+  const stationMinutes = getStationMinutesFromNow(station)
+  const prepMinutes = extractMinutes(dish.prepTime || chef.prepTime)
+  if (!Number.isFinite(stationMinutes) || !prepMinutes) return true
+  return prepMinutes + 10 <= stationMinutes
+}
+
 const mergeRouteAndLiveStations = (summary = {}) => {
   const routeStations = Array.isArray(summary?.route) ? summary.route.map(mapRouteStation) : []
   const liveStations = Array.isArray(summary?.live?.stations)
@@ -383,7 +471,7 @@ const fetchTrainSummary = async (trainNumber, dateOfJourney) => {
   ])
 
   if (!trainInfoResult?.success && !liveResult?.success) {
-    if (isDemoPnrEnabled()) {
+    if (canUseDemoFallback(trainInfoResult) && canUseDemoFallback(liveResult)) {
       return {
         success: true,
         data: buildDemoTrainSummary(),
@@ -415,15 +503,15 @@ const getCoverageMatchValues = (chef, menu, station) => {
 
   const matchingDishes = availableDishes.filter((dish) => {
     const dishStations = toStringArray(dish.stations)
-    if (!dishStations.length && chefStation) {
-      return stationAliases.has(chefStation)
-    }
+    const stationMatches = !dishStations.length && chefStation
+      ? stationAliases.has(chefStation)
+      : dishStations.some((value) => stationAliases.has(normalizeStationToken(value)))
 
-    return dishStations.some((value) => stationAliases.has(normalizeStationToken(value)))
+    return stationMatches && canChefPrepareForStation(chef, dish, station)
   })
 
   return {
-    matches: matchingDishes.length > 0 || (chefStation && stationAliases.has(chefStation)),
+    matches: matchingDishes.length > 0,
     matchingDishes,
   }
 }
@@ -563,15 +651,32 @@ const resolvePnrSnapshot = async (req) => {
   }
 
   const liveResult = await fetchIrctcJson(`/api/checkPNRStatus/${pnr}`)
+  console.log('[PNR Debug] journey checkPNRStatus response:', {
+    pnr,
+    success: Boolean(liveResult?.success),
+    status: liveResult?.status || 200,
+    code: liveResult?.code || '',
+    error: liveResult?.error || '',
+    hasTrain: Boolean(liveResult?.data?.train || liveResult?.data?.trainNumber),
+  })
   if (!liveResult?.success) {
-    if (isDemoPnrEnabled()) {
+    if (canUseDemoFallback(liveResult)) {
       return { success: true, data: buildDemoPnrSnapshot(pnr) }
     }
 
-    return { success: false, error: liveResult?.error || 'Unable to fetch PNR details.' }
+    return { success: false, error: liveResult?.error || 'Unable to fetch PNR details.', code: liveResult?.code }
   }
 
-  return { success: true, data: normalizePnrSnapshot(pnr, liveResult) }
+  const normalized = normalizePnrSnapshot(pnr, liveResult)
+  if (!hasUsablePnrSnapshot(normalized)) {
+    if (canUseDemoFallback(liveResult)) {
+      return { success: true, data: buildDemoPnrSnapshot(pnr) }
+    }
+
+    return { success: false, error: 'Unable to read train details for this PNR.' }
+  }
+
+  return { success: true, data: normalized }
 }
 
 const getJourneySummary = async (req, res) => {
@@ -700,6 +805,69 @@ const getChefMenuForStation = async (req, res) => {
   }
 }
 
+const upsertOrderDraft = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' })
+    }
+
+    const pnrData = req.body?.pnrData && typeof req.body.pnrData === 'object' ? req.body.pnrData : {}
+    const pnr = onlyDigits(req.body?.pnr || pnrData?.pnr || '')
+    if (!pnr) {
+      return res.status(400).json({ success: false, message: 'PNR is required to save the order draft.' })
+    }
+
+    const hasCartItems = Array.isArray(req.body?.cartItems || req.body?.items)
+    const cartItems = hasCartItems
+      ? (req.body.cartItems || req.body.items).map((item) => {
+          const price = Math.max(0, toNumber(item?.price, 0))
+          const quantity = Math.max(0, toNumber(item?.quantity, 0))
+          return {
+            ...item,
+            price,
+            quantity,
+            lineTotal: roundCurrency(price * quantity),
+          }
+        })
+      : []
+    const billing = cartItems.length ? calculateBillingSummary(cartItems) : (req.body?.billing || {})
+    const currentStep = toTrimmedString(req.body?.currentStep || 'pnr')
+
+    const update = {
+      pnr,
+      currentStep,
+      status: 'active',
+    }
+
+    if (Object.keys(pnrData).length) update.pnrData = pnrData
+    if (req.body?.trainSummary) update.trainSummary = req.body.trainSummary
+    if (Array.isArray(req.body?.availableStations)) update.availableStations = req.body.availableStations
+    if (req.body?.selectedStation) update.selectedStation = req.body.selectedStation
+    if (req.body?.chefId) update.chefId = toTrimmedString(req.body.chefId)
+    if (req.body?.chef) update.chef = req.body.chef
+    if (Array.isArray(req.body?.menuItems)) update.menuItems = req.body.menuItems
+    if (hasCartItems) update.cartItems = cartItems
+    if (cartItems.length || req.body?.billing) update.billing = billing
+    if (req.body?.payment) update.payment = req.body.payment
+
+    const draft = await userOrderDraft.findOneAndUpdate(
+      { createdBy: userId, pnr, status: 'active' },
+      { $set: update },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    ).lean()
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order draft saved successfully.',
+      data: draft,
+    })
+  } catch (err) {
+    console.error('Error occurred while upsertOrderDraft in userJourney controller:', err.message)
+    return res.status(500).json({ success: false, message: 'Unable to save order draft right now.' })
+  }
+}
+
 const createJourneyOrder = async (req, res) => {
   try {
     const userId = req.user?.id
@@ -743,6 +911,7 @@ const createJourneyOrder = async (req, res) => {
 
     let orderChefSnapshot = null
     let dishMap = null
+    let menuSnapshot = []
 
     if (!approval && isDemoPnrEnabled()) {
       const demoMenu = getDemoChefMenu(stationCode, chefId)
@@ -774,6 +943,7 @@ const createJourneyOrder = async (req, res) => {
             },
           ]),
         )
+        menuSnapshot = demoMenu.menuItems
       }
     }
 
@@ -789,6 +959,18 @@ const createJourneyOrder = async (req, res) => {
 
       const { matchingDishes } = getCoverageMatchValues(approval, menu, selectedStation)
       dishMap = new Map(matchingDishes.map((dish) => [dish.dishId, dish]))
+      menuSnapshot = matchingDishes.map((dish) => ({
+        dishId: dish.dishId,
+        name: dish.name || '',
+        description: dish.description || '',
+        category: dish.category || '',
+        price: Math.max(0, toNumber(dish.price, 0)),
+        imageUrl: dish.imageUrl || '',
+        servingSize: dish.servingSize || '',
+        spiceLevel: dish.spiceLevel || '',
+        stations: dish.stations || [],
+        available: dish.available !== false,
+      }))
       orderChefSnapshot = {
         authId: approval.createdBy?._id || chefId,
         registerId: approval._id,
@@ -818,7 +1000,7 @@ const createJourneyOrder = async (req, res) => {
           category: dish.category || '',
           price,
           quantity,
-          lineTotal: price * quantity,
+          lineTotal: roundCurrency(price * quantity),
           imageUrl: dish.imageUrl || '',
           servingSize: dish.servingSize || '',
           spiceLevel: dish.spiceLevel || '',
@@ -833,6 +1015,7 @@ const createJourneyOrder = async (req, res) => {
     let paymentMode = toTrimmedString(req.body?.payment?.mode).toLowerCase()
     const paymentMethod = toTrimmedString(req.body?.payment?.method).toLowerCase()
     const paymentProvider = toTrimmedString(req.body?.payment?.provider || DEFAULT_PAYMENT_PROVIDER)
+    const paymentUpiId = paymentMethod === 'upi' ? toTrimmedString(req.body?.payment?.upiId) : ''
 
     if (paymentMode && paymentMode !== ONLINE_PAYMENT_MODE) {
       return res.status(400).json({ success: false, message: 'Only online payment is available right now.' })
@@ -842,12 +1025,8 @@ const createJourneyOrder = async (req, res) => {
       paymentMode = ONLINE_PAYMENT_MODE
     }
 
-    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
-    const subtotal = roundCurrency(items.reduce((sum, item) => sum + item.lineTotal, 0))
-    const gstRate = FOOD_GST_RATE
-    const gstAmount = roundCurrency(subtotal * gstRate)
-    const deliveryCharge = DELIVERY_CHARGE
-    const totalAmount = roundCurrency(subtotal + gstAmount + deliveryCharge)
+    const billingSummary = calculateBillingSummary(items)
+    const { totalItems, subtotal, gstRate, gstAmount, deliveryCharge, totalAmount } = billingSummary
     const hasPaidOnline = paymentMode === ONLINE_PAYMENT_MODE && Boolean(paymentMethod)
     const invoiceNumber = hasPaidOnline ? buildReference('HME') : ''
     const paymentReference = hasPaidOnline ? buildReference('PAY') : ''
@@ -862,6 +1041,9 @@ const createJourneyOrder = async (req, res) => {
       destinationStation: pnrData.destinationStation,
       dateOfJourney: pnrData.dateOfJourney,
       passengers: pnrData.passengers,
+      pnrData,
+      trainSummary: summaryResult.data,
+      availableStations: journeyStations,
       selectedStation: {
         code: selectedStation.code,
         name: selectedStation.name,
@@ -876,6 +1058,7 @@ const createJourneyOrder = async (req, res) => {
       },
       chef: orderChefSnapshot,
       items,
+      menuSnapshot,
       totalItems,
       subtotal,
       gstRate,
@@ -885,14 +1068,39 @@ const createJourneyOrder = async (req, res) => {
       currency: DEFAULT_CURRENCY,
       invoiceNumber,
       orderStatus: hasPaidOnline ? 'placed' : 'pending_payment',
+      chefStatus: hasPaidOnline ? 'new' : 'new',
       paymentStatus: hasPaidOnline ? 'paid' : 'pending',
       paymentMethod,
       paymentMode,
       paymentProvider: hasPaidOnline ? paymentProvider : '',
       paymentReference,
+      paymentUpiId: hasPaidOnline ? paymentUpiId : '',
       paidAt,
       source: toTrimmedString(req.body?.source || 'pnr') || 'pnr',
     })
+
+    await userOrderDraft.findOneAndUpdate(
+      { createdBy: userId, pnr: order.pnr, status: 'active' },
+      {
+        $set: {
+          status: 'completed',
+          currentStep: 'completed',
+          completedOrder: order._id,
+          payment: {
+            mode: order.paymentMode,
+            method: order.paymentMethod,
+            provider: order.paymentProvider,
+            upiId: order.paymentUpiId,
+            reference: order.paymentReference,
+          },
+          billing: billingSummary,
+        },
+      },
+    )
+
+    if (hasPaidOnline) {
+      emitToChef(String(order.chef?.authId || chefId), 'chef:new-order', mapUserOrderResponse(order))
+    }
 
     return res.status(201).json({
       success: true,
@@ -907,9 +1115,13 @@ const createJourneyOrder = async (req, res) => {
         destinationStation: order.destinationStation,
         dateOfJourney: order.dateOfJourney,
         passengers: order.passengers,
+        pnrData: order.pnrData,
+        trainSummary: order.trainSummary,
+        availableStations: order.availableStations,
         selectedStation: order.selectedStation,
         chef: order.chef,
         items: order.items,
+        menuSnapshot: order.menuSnapshot,
         subtotal: order.subtotal,
         gstRate: order.gstRate,
         gstAmount: order.gstAmount,
@@ -922,8 +1134,13 @@ const createJourneyOrder = async (req, res) => {
         paymentMethod: order.paymentMethod,
         paymentProvider: order.paymentProvider,
         paymentReference: order.paymentReference,
+        paymentUpiId: order.paymentUpiId,
         paidAt: order.paidAt,
         orderStatus: order.orderStatus,
+        chefStatus: order.chefStatus,
+        acceptedAt: order.acceptedAt,
+        preparedAt: order.preparedAt,
+        readyForPickupAt: order.readyForPickupAt,
         createdAt: order.createdAt,
       },
     })
@@ -933,9 +1150,97 @@ const createJourneyOrder = async (req, res) => {
   }
 }
 
+const mapUserOrderResponse = (order) => ({
+  orderId: String(order._id),
+  invoiceNumber: order.invoiceNumber,
+  pnr: order.pnr,
+  trainNumber: order.trainNumber,
+  trainName: order.trainName,
+  boardingStation: order.boardingStation,
+  destinationStation: order.destinationStation,
+  dateOfJourney: order.dateOfJourney,
+  passengers: order.passengers,
+  pnrData: order.pnrData,
+  trainSummary: order.trainSummary,
+  availableStations: order.availableStations,
+  selectedStation: order.selectedStation,
+  chef: order.chef,
+  items: order.items,
+  menuSnapshot: order.menuSnapshot,
+  subtotal: order.subtotal,
+  gstRate: order.gstRate,
+  gstAmount: order.gstAmount,
+  deliveryCharge: order.deliveryCharge,
+  totalAmount: order.totalAmount,
+  currency: order.currency,
+  totalItems: order.totalItems,
+  paymentStatus: order.paymentStatus,
+  paymentMode: order.paymentMode,
+  paymentMethod: order.paymentMethod,
+  paymentProvider: order.paymentProvider,
+  paymentReference: order.paymentReference,
+  paymentUpiId: order.paymentUpiId,
+  paidAt: order.paidAt,
+  orderStatus: order.orderStatus,
+  chefStatus: order.chefStatus,
+  acceptedAt: order.acceptedAt,
+  preparedAt: order.preparedAt,
+  readyForPickupAt: order.readyForPickupAt,
+  createdAt: order.createdAt,
+  updatedAt: order.updatedAt,
+})
+
+const getUserOrders = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' })
+    }
+
+    const orders = await userOrder
+      .find({ createdBy: userId })
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .lean()
+
+    return res.status(200).json({
+      success: true,
+      data: orders.map(mapUserOrderResponse),
+    })
+  } catch (err) {
+    console.error('Error occurred while getUserOrders in userJourney controller:', err.message)
+    return res.status(500).json({ success: false, message: 'Unable to fetch your orders right now.' })
+  }
+}
+
+const getUserOrderById = async (req, res) => {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' })
+    }
+
+    const order = await userOrder.findOne({ _id: req.params.orderId, createdBy: userId }).lean()
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found.' })
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: mapUserOrderResponse(order),
+    })
+  } catch (err) {
+    console.error('Error occurred while getUserOrderById in userJourney controller:', err.message)
+    return res.status(500).json({ success: false, message: 'Unable to fetch order details right now.' })
+  }
+}
+
 module.exports = {
   getJourneySummary,
   getStationChefs,
   getChefMenuForStation,
   createJourneyOrder,
+  upsertOrderDraft,
+  getUserOrders,
+  getUserOrderById,
 }

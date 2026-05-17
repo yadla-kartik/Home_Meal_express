@@ -242,6 +242,7 @@ function AddMenu() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [aiImageMessage, setAiImageMessage] = React.useState('')
   const [showSavedPopup, setShowSavedPopup] = React.useState(false)
+  const [showPriceWarningPopup, setShowPriceWarningPopup] = React.useState(false)
   const [customTagInput, setCustomTagInput] = React.useState('')
   const [isCategoryOpen, setIsCategoryOpen] = React.useState(false)
   const [dishes, setDishes] = React.useState([])
@@ -275,6 +276,7 @@ function AddMenu() {
 
   React.useEffect(() => {
     setAiImageMessage('')
+    setShowPriceWarningPopup(false)
   }, [selectedId])
 
   React.useEffect(() => {

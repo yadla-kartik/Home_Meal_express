@@ -55,6 +55,8 @@ const orderItemSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '', trim: true },
     servingSize: { type: String, default: '', trim: true },
     spiceLevel: { type: String, default: '', trim: true },
+    isPrepared: { type: Boolean, default: false },
+    preparedAt: { type: Date, default: null },
   },
   { _id: false },
 )
@@ -102,6 +104,18 @@ const userOrderSchema = new mongoose.Schema(
       type: [orderPassengerSchema],
       default: [],
     },
+    pnrData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    trainSummary: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    availableStations: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
     selectedStation: {
       type: orderStationSchema,
       required: true,
@@ -117,6 +131,10 @@ const userOrderSchema = new mongoose.Schema(
         validator: (items) => Array.isArray(items) && items.length > 0,
         message: 'At least one item is required.',
       },
+    },
+    menuSnapshot: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
     },
     totalItems: {
       type: Number,
@@ -160,8 +178,70 @@ const userOrderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ['pending_payment', 'placed', 'cancelled'],
+      enum: ['pending_payment', 'placed', 'accepted', 'preparing', 'prepared', 'ready_for_pickup', 'out_for_delivery', 'completed', 'cancelled'],
       default: 'pending_payment',
+    },
+    chefStatus: {
+      type: String,
+      enum: ['new', 'accepted', 'preparing', 'prepared', 'ready_for_pickup', 'completed', 'cancelled'],
+      default: 'new',
+      index: true,
+    },
+    acceptedAt: {
+      type: Date,
+      default: null,
+    },
+    preparedAt: {
+      type: Date,
+      default: null,
+    },
+    readyForPickupAt: {
+      type: Date,
+      default: null,
+    },
+    deliveryStatus: {
+      type: String,
+      enum: ['not_ready', 'available_for_pickup', 'assigned', 'picked_up', 'delivered', 'cancelled'],
+      default: 'not_ready',
+      index: true,
+    },
+    assignedDeliveryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'deliveryAuth',
+      default: null,
+      index: true,
+    },
+    assignedAt: {
+      type: Date,
+      default: null,
+    },
+    pickedUpAt: {
+      type: Date,
+      default: null,
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    deliveryChargeShare: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    deliveryGstShareRate: {
+      type: Number,
+      default: 0.025,
+      min: 0,
+    },
+    deliveryGstShareAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    deliveryEarningAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     paymentStatus: {
       type: String,
@@ -184,6 +264,11 @@ const userOrderSchema = new mongoose.Schema(
       trim: true,
     },
     paymentReference: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    paymentUpiId: {
       type: String,
       default: '',
       trim: true,

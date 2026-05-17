@@ -10,6 +10,13 @@ const {
   generateDishImage,
   generateDishDescription,
 } = require('../controllers/chefMenu')
+const {
+  getChefOrders,
+  getChefOrderById,
+  acceptChefOrder,
+  markChefOrderItemDone,
+  markChefOrderReadyForPickup,
+} = require('../controllers/chefOrders')
 const { uploadChefRegister } = require('../middleware/chefRegisterUpload')
 
 const router = express.Router()
@@ -28,6 +35,11 @@ router.post('/menu/ai/price-guidance', checkForUserAuth('chefToken'), getDishPri
 router.post('/menu/publish', checkForUserAuth('chefToken'), publishChefMenu)
 router.post('/menu/ai/image', checkForUserAuth('chefToken'), generateDishImage)
 router.post('/menu/ai/description', checkForUserAuth('chefToken'), generateDishDescription)
+router.get('/orders', checkForUserAuth('chefToken'), getChefOrders)
+router.get('/orders/:orderId', checkForUserAuth('chefToken'), getChefOrderById)
+router.patch('/orders/:orderId/accept', checkForUserAuth('chefToken'), acceptChefOrder)
+router.patch('/orders/:orderId/items/:itemIndex/done', checkForUserAuth('chefToken'), markChefOrderItemDone)
+router.patch('/orders/:orderId/ready-for-pickup', checkForUserAuth('chefToken'), markChefOrderReadyForPickup)
 
 router.get('/me', checkForUserAuth('chefToken'), (req, res) => {
   res.status(200).json({ chefUser: req.user })

@@ -6,6 +6,9 @@ const {
   getStationChefs,
   getChefMenuForStation,
   createJourneyOrder,
+  upsertOrderDraft,
+  getUserOrders,
+  getUserOrderById,
 } = require('../controllers/userJourney')
 const { checkForUserAuth } = require('../middleware/userAuth')
 const { buildClearCookieOptions } = require('../utils/authCookies')
@@ -22,7 +25,10 @@ router.post('/pnr/check', checkPnr)
 router.post('/pnr/journey-summary', checkForUserAuth('UserToken'), getJourneySummary)
 router.get('/stations/:stationCode/chefs', checkForUserAuth('UserToken'), getStationChefs)
 router.get('/stations/:stationCode/chefs/:chefId/menu', checkForUserAuth('UserToken'), getChefMenuForStation)
+router.post('/orders/draft', checkForUserAuth('UserToken'), upsertOrderDraft)
 router.post('/orders', checkForUserAuth('UserToken'), createJourneyOrder)
+router.get('/orders', checkForUserAuth('UserToken'), getUserOrders)
+router.get('/orders/:orderId', checkForUserAuth('UserToken'), getUserOrderById)
 
 router.get('/me', checkForUserAuth('UserToken'), (req, res) => {
   res.status(200).json({ user: req.user })

@@ -23,6 +23,7 @@ import {
   checkPnrDetails,
   getJourneySummary,
   getStationChefs,
+  saveOrderDraft,
 } from '../../services/userAuthService'
 import {
   clearOrderConfirmation,
@@ -122,6 +123,12 @@ function PnrResultPage() {
         setPnrData(summaryResponse?.data?.pnrData || nextPnrData)
         setStations(availableStations)
         sessionStorage.setItem(JOURNEY_STATIONS_SESSION_KEY, JSON.stringify(availableStations))
+        saveOrderDraft({
+          pnr: pnrNumber,
+          pnrData: summaryResponse?.data?.pnrData || nextPnrData,
+          availableStations,
+          currentStep: 'pnr',
+        })
 
         const storedSelectedStation = sessionStorage.getItem(SELECTED_STATION_SESSION_KEY)
         const parsedSelectedStation = storedSelectedStation ? JSON.parse(storedSelectedStation) : null
@@ -130,6 +137,13 @@ function PnrResultPage() {
         setSelectedStation(initialStation)
         if (initialStation) {
           sessionStorage.setItem(SELECTED_STATION_SESSION_KEY, JSON.stringify(initialStation))
+          saveOrderDraft({
+            pnr: pnrNumber,
+            pnrData: summaryResponse?.data?.pnrData || nextPnrData,
+            availableStations,
+            selectedStation: initialStation,
+            currentStep: 'station',
+          })
           await loadStationChefs(initialStation)
         }
       } catch (err) {
@@ -160,6 +174,13 @@ function PnrResultPage() {
   const handleSelectStation = async (station) => {
     setSelectedStation(station)
     sessionStorage.setItem(SELECTED_STATION_SESSION_KEY, JSON.stringify(station))
+    saveOrderDraft({
+      pnr: pnrNumber,
+      pnrData,
+      availableStations: stations,
+      selectedStation: station,
+      currentStep: 'station',
+    })
     await loadStationChefs(station)
   }
 
@@ -168,6 +189,15 @@ function PnrResultPage() {
 
     clearOrderDraft()
     clearOrderConfirmation()
+    saveOrderDraft({
+      pnr: pnrNumber,
+      pnrData,
+      availableStations: stations,
+      selectedStation,
+      chefId: chef.id,
+      chef,
+      currentStep: 'chef',
+    })
     navigate(`/station/${selectedStation.code}/chef/${chef.id}`, {
       state: {
         pnrData,

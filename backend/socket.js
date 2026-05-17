@@ -28,6 +28,12 @@ function initSocket(server, origins) {
       console.log(`Delivery connected to Socket.IO: ${deliveryId} (${socket.id})`)
     })
 
+    socket.on('join-user-room', (userId) => {
+      if (!userId) return
+      socket.join(`user-room:${userId}`)
+      console.log(`User connected to Socket.IO: ${userId} (${socket.id})`)
+    })
+
     socket.on('disconnect', () => {
       console.log(`Socket.IO client disconnected: ${socket.id}`)
     })
@@ -54,9 +60,16 @@ function emitToDelivery(deliveryId, eventName, payload) {
   io.to(`delivery-room:${deliveryId}`).emit(eventName, payload)
 }
 
+function emitToUser(userId, eventName, payload) {
+  if (!io || !userId) return
+  console.log(`Socket event emitted to user ${userId}: ${eventName} (${payload?.orderId || payload?.id || 'no-id'})`)
+  io.to(`user-room:${userId}`).emit(eventName, payload)
+}
+
 module.exports = {
   initSocket,
   emitToAdmins,
   emitToChef,
   emitToDelivery,
+  emitToUser,
 }

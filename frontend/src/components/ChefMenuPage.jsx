@@ -17,7 +17,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import Navbar from '../apps/user/Navbar'
-import { getStationChefMenu } from '../../services/userAuthService'
+import { getStationChefMenu, saveOrderDraft } from '../../services/userAuthService'
 import {
   buildCartStateFromDraft,
   buildDraftItemsFromMenu,
@@ -79,6 +79,15 @@ function ChefMenuPage() {
 
       setChef(nextChef)
       setMenuItems(nextMenuItems)
+      saveOrderDraft({
+        pnr: sessionStorage.getItem(PNR_INPUT_SESSION_KEY) || pnrData?.pnr || '',
+        pnrData,
+        selectedStation,
+        chefId,
+        chef: nextChef,
+        menuItems: nextMenuItems,
+        currentStep: 'menu',
+      })
       setCart(
         doesDraftMatchRoute(existingDraft, stationCode, chefId)
           ? buildCartStateFromDraft(existingDraft)
@@ -108,6 +117,7 @@ function ChefMenuPage() {
     }
 
     clearOrderConfirmation()
+    const summary = calculateOrderSummary(items)
     writeOrderDraft({
       pnrInput: sessionStorage.getItem(PNR_INPUT_SESSION_KEY) || pnrData?.pnr || '',
       pnrData,
@@ -116,6 +126,18 @@ function ChefMenuPage() {
       selectedStation,
       chef,
       items,
+      payment: doesDraftMatchRoute(existingDraft, stationCode, chefId) ? existingDraft?.payment : undefined,
+    })
+    saveOrderDraft({
+      pnr: sessionStorage.getItem(PNR_INPUT_SESSION_KEY) || pnrData?.pnr || '',
+      pnrData,
+      selectedStation,
+      chefId,
+      chef,
+      menuItems,
+      cartItems: items,
+      billing: summary,
+      currentStep: 'menu',
       payment: doesDraftMatchRoute(existingDraft, stationCode, chefId) ? existingDraft?.payment : undefined,
     })
   }, [cart, chef, menuItems, pnrData, selectedStation, stationCode, chefId])
@@ -188,10 +210,10 @@ function ChefMenuPage() {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 text-[10px] font-black text-slate-900 transition-colors hover:text-orange-500 sm:text-[11px]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--theme-accent)] shadow-[var(--theme-shadow-soft)] transition-all hover:-translate-y-0.5 hover:bg-[var(--theme-accent)] hover:text-white sm:text-[11px]"
               >
                 <ArrowLeft size={14} strokeWidth={3} />
-                <span>BACK</span>
+                <span>Back</span>
               </button>
               <div className="h-3 w-px bg-slate-200" />
               <div className="flex items-center gap-1.5">
@@ -234,14 +256,6 @@ function ChefMenuPage() {
                       {chef?.specialty}
                     </span>
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-                    <span className="rounded-full border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-accent)]">
-                      Step 1 of 5 • Menu
-                    </span>
-                    <span className="text-[12px] font-medium text-slate-500">
-                      Next screens: Cart, Billing, Payment, Final Bill
-                    </span>
-                  </div>
                 </div>
 
                 <div className="flex w-full justify-center gap-2 sm:w-auto">
@@ -256,32 +270,27 @@ function ChefMenuPage() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-[var(--theme-chip-border)] bg-white/90 px-4 py-4 text-center shadow-[var(--theme-shadow-soft)] lg:min-w-[200px] lg:text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--theme-muted)]">
-                  Current cart
-                </p>
-                <p className="mt-2 text-[28px] font-black text-[var(--theme-accent)]">{summary.totalItems}</p>
-                <p className="mt-1 text-[13px] font-semibold text-[var(--theme-text)]">{formatMoney(summary.subtotal)}</p>
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="sticky top-16 z-20 mt-5 border-b border-slate-100 bg-white/95 shadow-sm backdrop-blur-md">
-          <div className="mx-auto max-w-5xl px-4 sm:px-6">
-            <div className="scrollbar-hide no-scrollbar flex items-center gap-4 overflow-x-auto py-2.5 sm:gap-6">
+        <div className="sticky top-20 z-20 mt-5 px-4 sm:px-6">
+          <div className="mx-auto max-w-5xl">
+            <div className="scrollbar-hide no-scrollbar inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-2xl border border-[color:var(--theme-surface-border)] bg-white/95 px-2 py-2 align-middle shadow-[var(--theme-shadow-soft)] backdrop-blur-md sm:gap-3">
               {categories.map((category) => (
                 <button
                   key={category}
                   type="button"
                   onClick={() => setActiveCategory(category)}
-                  className={`relative shrink-0 px-1 text-[9px] font-black uppercase tracking-wider transition-all sm:text-[10px] ${
-                    activeCategory === category ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'
+                  className={`relative inline-flex h-9 shrink-0 items-center justify-center rounded-xl px-3 text-[9px] font-semibold uppercase tracking-[0.12em] transition-all sm:text-[10px] ${
+                    activeCategory === category
+                      ? 'bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]'
+                      : 'text-[var(--theme-muted)] hover:bg-slate-50 hover:text-[var(--theme-text)]'
                   }`}
                 >
                   {category}
                   {activeCategory === category ? (
-                    <Motion.div layoutId="activeCat" className="absolute -bottom-[10px] left-0 right-0 h-0.5 rounded-full bg-orange-500" />
+                    <Motion.div layoutId="activeCat" className="absolute inset-x-3 bottom-1 h-0.5 rounded-full bg-[var(--theme-accent)]" />
                   ) : null}
                 </button>
               ))}
@@ -312,7 +321,7 @@ function ChefMenuPage() {
                       initial="hidden"
                       animate="show"
                       transition={{ delay: index * 0.02 }}
-                      className="group flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white p-2 transition-all duration-200 hover:border-orange-200 hover:shadow-sm"
+                      className="group flex min-h-[74px] items-center gap-3 rounded-lg border border-slate-200 bg-white p-2 transition-all duration-200 hover:border-[var(--theme-chip-border)] hover:shadow-sm"
                     >
                       <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-50 text-slate-200">
                         {item.imageUrl ? (
@@ -320,48 +329,43 @@ function ChefMenuPage() {
                         ) : (
                           <UtensilsCrossed size={20} className="opacity-20" />
                         )}
-
-                        {index === 0 ? (
-                          <div className="absolute left-0 right-0 top-0 bg-orange-500 py-0.5 text-center">
-                            <span className="text-[4px] font-black uppercase text-white">TOP</span>
-                          </div>
-                        ) : null}
-
-                        <div className={`absolute bottom-0.5 left-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-sm border bg-white ${
-                          item.isVeg ? 'border-emerald-500' : 'border-rose-500'
-                        }`}>
-                          <div className={`h-1 w-1 rounded-full ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                        </div>
                       </div>
 
-                      <div className="flex h-14 min-w-0 flex-1 flex-col justify-between">
+                      <div className="flex min-h-14 min-w-0 flex-1 flex-col justify-center">
                         <div>
-                          <h3 className="truncate text-[10px] font-black leading-tight text-slate-800 sm:text-[11px]">{item.name}</h3>
-                          <p className="line-clamp-1 text-[8px] font-medium leading-tight text-slate-400 sm:text-[9px]">{item.desc}</p>
+                          <div className="flex min-w-0 items-center gap-1.5 leading-none">
+                            <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border bg-white ${
+                              item.isVeg ? 'border-emerald-500' : 'border-rose-500'
+                            }`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${item.isVeg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            </span>
+                            <h3 className="truncate text-[10px] font-black leading-tight text-slate-800 sm:text-[11px]">{item.name}</h3>
+                          </div>
+                          <p className="mt-1.5 line-clamp-1 text-[8px] font-medium leading-tight text-slate-400 sm:text-[9px]">{item.desc}</p>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="mt-2 flex items-center justify-between">
                           <p className="text-[11px] font-black text-slate-900 sm:text-[12px]">{formatMoney(item.price)}</p>
 
-                          <div className="relative">
+                          <div className="relative flex items-center">
                             <AnimatePresence mode="wait">
                               {cart[item.id] ? (
                                 <Motion.div
                                   key="counter"
                                   initial={{ scale: 0.9, opacity: 0 }}
                                   animate={{ scale: 1, opacity: 1 }}
-                                  className="flex items-center gap-1 rounded-md border border-slate-900 bg-white p-0.5"
+                                  className="flex h-9 items-center gap-1 rounded-lg border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] p-1 shadow-[var(--theme-shadow-soft)]"
                                 >
-                                  <button type="button" onClick={() => removeFromCart(item)} className="flex h-4 w-4 items-center justify-center rounded text-slate-900 hover:bg-slate-50">
-                                    <Minus size={8} strokeWidth={3} />
+                                  <button type="button" onClick={() => removeFromCart(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--theme-accent)] transition hover:bg-white">
+                                    <Minus size={10} strokeWidth={3} />
                                   </button>
-                                  <span className="min-w-[10px] text-center text-[9px] font-black text-slate-900">{cart[item.id]}</span>
-                                  <button type="button" onClick={() => addToCart(item)} className="flex h-4 w-4 items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800">
-                                    <Plus size={8} strokeWidth={3} />
+                                  <span className="min-w-[18px] text-center text-[11px] font-black text-[var(--theme-text)]">{cart[item.id]}</span>
+                                  <button type="button" onClick={() => addToCart(item)} className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--theme-accent)] text-white transition hover:opacity-90">
+                                    <Plus size={10} strokeWidth={3} />
                                   </button>
                                 </Motion.div>
                               ) : (
-                                <button type="button" onClick={() => addToCart(item)} className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[8px] font-black text-emerald-600 transition-all hover:border-slate-900 hover:text-slate-900">
+                                <button type="button" onClick={() => addToCart(item)} className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--theme-chip-border)] bg-white px-4 text-[10px] font-black text-[var(--theme-accent)] transition-all hover:border-[var(--theme-accent)] hover:bg-[var(--theme-accent-soft)]">
                                   ADD
                                 </button>
                               )}
@@ -386,25 +390,25 @@ function ChefMenuPage() {
             exit={{ y: 50, opacity: 0 }}
             className="fixed inset-x-4 bottom-3 z-50 flex justify-center"
           >
-            <div className="flex w-full max-w-2xl items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-slate-950/95 p-3 pr-4 shadow-2xl backdrop-blur-xl">
+            <div className="flex w-full max-w-2xl items-center justify-between gap-3 rounded-[24px] border border-[var(--theme-chip-border)] bg-white/95 p-3 pr-4 shadow-[var(--theme-shadow-card)] backdrop-blur-xl">
               <div className="flex items-center gap-3 pl-1">
-                <div className="grid h-12 w-12 place-items-center rounded-[18px] bg-white/10 text-white">
+                <div className="grid h-11 w-11 place-items-center rounded-[16px] border border-[var(--theme-chip-border)] bg-[var(--theme-accent-soft)] text-[var(--theme-accent)]">
                   <ShoppingBag size={18} />
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
-                    {summary.totalItems} items selected
+                  <p className="text-[11px] font-semibold text-[var(--theme-muted)]">
+                    {summary.totalItems} items in cart
                   </p>
-                  <p className="text-lg font-black text-white">{formatMoney(summary.subtotal)}</p>
+                  <p className="text-base font-bold text-[var(--theme-text)]">{formatMoney(summary.subtotal)}</p>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleReviewCart}
-                className="flex items-center gap-2 rounded-[16px] bg-emerald-500 px-5 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-lg transition hover:bg-emerald-400 active:scale-95"
+                className="theme-primary-button flex items-center gap-2 rounded-[16px] px-5 py-3 text-[12px] font-semibold text-white transition hover:-translate-y-0.5 active:scale-95"
               >
-                Review Cart
+                Review cart
                 <ChevronRight size={14} strokeWidth={3} />
               </button>
             </div>

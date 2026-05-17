@@ -71,11 +71,29 @@ const fetchIrctcJson = async (path) => {
   if (!response.ok) {
     return {
       success: false,
-      error: body?.error || body || `HTTP ${response.status}`,
+      status: response.status,
+      error: body?.error || body?.message || body || `HTTP ${response.status}`,
+      code: response.status === 429 ? 'RATE_LIMIT' : response.status === 401 || response.status === 403 ? 'AUTH' : 'HTTP_ERROR',
     }
   }
 
-  return body
+  if (body?.success === false || body?.type === 'error') {
+    return {
+      success: false,
+      error: body?.message || body?.error || 'IRCTC request failed.',
+      code: 'API_ERROR',
+      data: body?.data || null,
+    }
+  }
+
+  if (body?.success === true) {
+    return body
+  }
+
+  return {
+    success: true,
+    data: body?.data || body,
+  }
 }
 
 const mapPnrData = (pnr, payload) => {
@@ -111,6 +129,21 @@ const mapPnrData = (pnr, payload) => {
       }
     }),
   }
+}
+
+const hasUsablePnrData = (pnrData) =>
+  Boolean(pnrData?.pnr && pnrData?.trainNumber && pnrData?.trainName)
+
+const canUseDemoFallback = (result) => {
+  const message = String(result?.error || '').toLowerCase()
+  return (
+    isDemoPnrEnabled() &&
+    result?.code !== 'RATE_LIMIT' &&
+    result?.code !== 'AUTH' &&
+    !message.includes('usage limit') &&
+    !message.includes('billing') &&
+    !message.includes('api key')
+  )
 }
 
 const normalizeToken = (value) => {
@@ -352,16 +385,40 @@ module.exports = {
       await new Promise(resolve => setTimeout(resolve, 800)) // simulate network delay
 
       const liveResult = await fetchIrctcJson(`/api/checkPNRStatus/${pnr}`)
+      console.log('[PNR Debug] checkPNRStatus response:', {
+        pnr,
+        success: Boolean(liveResult?.success),
+        status: liveResult?.status || 200,
+        code: liveResult?.code || '',
+        error: liveResult?.error || '',
+        hasTrain: Boolean(liveResult?.data?.train || liveResult?.data?.trainNumber),
+      })
 
       if (liveResult?.success) {
+        const mappedPnr = mapPnrData(pnr, liveResult)
+        if (!hasUsablePnrData(mappedPnr)) {
+          if (canUseDemoFallback(liveResult)) {
+            return res.status(200).json({
+              success: true,
+              message: 'Demo PNR details loaded because live lookup returned incomplete data.',
+              data: buildDemoPnrSnapshot(pnr),
+            })
+          }
+
+          return res.status(400).json({
+            success: false,
+            message: 'Unable to read train details for this PNR.',
+          })
+        }
+
         return res.status(200).json({
           success: true,
           message: 'PNR details fetched successfully.',
-          data: mapPnrData(pnr, liveResult),
+          data: mappedPnr,
         })
       }
 
-      if (isDemoPnrEnabled()) {
+      if (canUseDemoFallback(liveResult)) {
         return res.status(200).json({
           success: true,
           message: 'Demo PNR details loaded because live lookup is unavailable.',
@@ -372,6 +429,7 @@ module.exports = {
       return res.status(400).json({
         success: false,
         message: liveResult?.error || 'Unable to fetch real PNR details right now.',
+        code: liveResult?.code || 'PNR_LOOKUP_FAILED',
       })
     } catch (err) {
       console.error('Error occurred while checkPnr in userOtpAuth controller:', err.message)

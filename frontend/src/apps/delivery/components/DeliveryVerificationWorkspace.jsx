@@ -13,63 +13,7 @@ import {
   Wallet,
   XCircle,
 } from 'lucide-react'
-
-const demoOrders = [
-  {
-    id: 'HME-2451',
-    restaurant: 'Sithal Kitchen',
-    customer: 'Aarav Sharma',
-    pickup: 'Platform 2, Durg Station',
-    kitchenAddress: 'Shop 12, Station Food Plaza, Durg',
-    trainName: 'Duronto Express',
-    trainNumber: '12261',
-    drop: 'B3 Coach, Seat 42',
-    amount: 'Rs. 186',
-    earningPrice: 'Rs. 186',
-    distance: '2.4 km',
-    kitchenDistance: '0.5 km',
-    eta: '18 min',
-    deliveryTime: '18 min',
-    items: '2 meals',
-    priority: 'Hot meal',
-  },
-  {
-    id: 'HME-2452',
-    restaurant: 'Golu Home Meals',
-    customer: 'Nisha Verma',
-    pickup: 'Gate 1, Raipur Station',
-    kitchenAddress: 'Civil Lines, Near Raipur Station',
-    trainName: 'Rajdhani Express',
-    trainNumber: '12433',
-    drop: 'A1 Coach, Seat 18',
-    amount: 'Rs. 224',
-    earningPrice: 'Rs. 224',
-    distance: '1.8 km',
-    kitchenDistance: '1.2 km',
-    eta: '14 min',
-    deliveryTime: '14 min',
-    items: '3 meals',
-    priority: 'Express',
-  },
-  {
-    id: 'HME-2453',
-    restaurant: 'Ramu Kitchen',
-    customer: 'Kabir Mehta',
-    pickup: 'Food counter, Durg Station',
-    kitchenAddress: 'Main Market, Opp Railway Gate',
-    trainName: 'Shatabdi Express',
-    trainNumber: '12002',
-    drop: 'S4 Coach, Seat 65',
-    amount: 'Rs. 132',
-    earningPrice: 'Rs. 132',
-    distance: '3.1 km',
-    kitchenDistance: '0.8 km',
-    eta: '22 min',
-    deliveryTime: '22 min',
-    items: '1 meal',
-    priority: 'Standard',
-  },
-]
+import { acceptDeliveryOrder } from '../../../../services/deliveryAuthService'
 
 function StatusProgressRing({ color = '#10b981', secondaryColor = 'rgba(16,185,129,0.16)' }) {
   const radius = 46
@@ -108,8 +52,8 @@ function StatusProgressRing({ color = '#10b981', secondaryColor = 'rgba(16,185,1
         </defs>
       </svg>
 
-      <div className={`absolute inset-0 m-auto flex h-20 w-20 flex-col items-center justify-center rounded-full border border-orange-100 bg-white shadow-[var(--theme-shadow-soft)]`}>
-        <p className="text-[25px] font-bold leading-none text-orange-600">100%</p>
+      <div className="absolute inset-0 m-auto flex h-20 w-20 flex-col items-center justify-center rounded-full border border-emerald-100 bg-white shadow-[var(--theme-shadow-soft)]">
+        <p className="text-[25px] font-bold leading-none text-emerald-600">100%</p>
         <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--theme-muted)]">
           live
         </p>
@@ -118,10 +62,21 @@ function StatusProgressRing({ color = '#10b981', secondaryColor = 'rgba(16,185,1
   )
 }
 
-function ActiveOrderRequest({ theme = 'emerald' }) {
+function ActiveOrderRequest({ theme = 'orange', orders = [] }) {
   const navigate = useNavigate()
-  const [selectedOrderId, setSelectedOrderId] = React.useState(demoOrders[0].id)
-  const selectedOrder = demoOrders.find((order) => order.id === selectedOrderId) || demoOrders[0]
+  const safeOrders = Array.isArray(orders) ? orders : []
+  const [selectedOrderId, setSelectedOrderId] = React.useState(safeOrders[0].id)
+  const [acceptingOrderId, setAcceptingOrderId] = React.useState('')
+  const [acceptError, setAcceptError] = React.useState('')
+  const selectedOrder = safeOrders.find((order) => order.id === selectedOrderId) || safeOrders[0]
+
+  React.useEffect(() => {
+    if (!safeOrders.some((order) => order.id === selectedOrderId)) {
+      setSelectedOrderId(safeOrders[0]?.id || '')
+    }
+  }, [safeOrders, selectedOrderId])
+
+  if (!safeOrders.length || !selectedOrder) return null
 
   const isOrange = theme === 'orange'
   const primaryColor = isOrange ? 'orange-600' : 'emerald-600'
@@ -132,7 +87,22 @@ function ActiveOrderRequest({ theme = 'emerald' }) {
   const cardBorder = isOrange ? 'border-orange-300' : 'border-emerald-300'
   const cardGradient = isOrange ? 'bg-[linear-gradient(135deg,#fff7ed,#ffffff)]' : 'bg-[linear-gradient(135deg,#ecfdf5,#ffffff)]'
   const buttonShadow = isOrange ? 'shadow-[0_12px_24px_rgba(249,115,22,0.24)]' : 'shadow-[0_12px_24px_rgba(16,185,129,0.24)]'
-  const buttonBg = isOrange ? 'bg-orange-600 hover:bg-orange-700' : 'bg-emerald-600 hover:bg-emerald-700'
+
+  const handleAcceptOrder = async () => {
+    if (!selectedOrder?.id || acceptingOrderId) return
+
+    setAcceptError('')
+    setAcceptingOrderId(selectedOrder.id)
+    const response = await acceptDeliveryOrder(selectedOrder.id)
+    setAcceptingOrderId('')
+
+    if (response?.success) {
+      navigate(`/delivery/order/${response.data?.id || selectedOrder.id}`)
+      return
+    }
+
+    setAcceptError(response?.message || 'Unable to accept this order right now.')
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.04fr_0.96fr]">
@@ -148,12 +118,12 @@ function ActiveOrderRequest({ theme = 'emerald' }) {
           </div>
 
           <span className={`inline-flex w-fit items-center gap-2 rounded-full border ${isOrange ? 'border-orange-200 bg-orange-50 text-orange-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'} px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider`}>
-            {demoOrders.length} LIVE
+            {safeOrders.length} LIVE
           </span>
         </div>
 
         <div className="mt-5 grid gap-3">
-          {demoOrders.map((order) => {
+          {safeOrders.map((order) => {
             const selected = order.id === selectedOrder.id
 
             return (
@@ -276,10 +246,11 @@ function ActiveOrderRequest({ theme = 'emerald' }) {
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => navigate(`/delivery/order/${selectedOrder.id}`)}
+            onClick={handleAcceptOrder}
+            disabled={Boolean(acceptingOrderId)}
             className={`rounded-[16px] border ${isOrange ? 'border-orange-200 bg-orange-600 hover:bg-orange-700' : 'border-emerald-200 bg-emerald-600 hover:bg-emerald-700'} px-5 py-3 text-sm font-semibold text-white ${buttonShadow} transition`}
           >
-            Accept order
+            {acceptingOrderId === selectedOrder.id ? 'Accepting...' : 'Accept order'}
           </button>
           <button
             type="button"
@@ -288,23 +259,79 @@ function ActiveOrderRequest({ theme = 'emerald' }) {
             Decline
           </button>
         </div>
+        {acceptError ? (
+          <p className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+            {acceptError}
+          </p>
+        ) : null}
       </div>
     </div>
   )
 }
 
-function DeliveryVerificationWorkspace({ status = 'pending', rejectionReason = '', onReregister }) {
-  const [showVerifiedBanner, setShowVerifiedBanner] = React.useState(() => {
-    return localStorage.getItem('hme_delivery_verified_seen') !== 'true'
-  })
+function DeliveryApprovedOverview() {
+  const cards = [
+    {
+      icon: CheckCircle2,
+      eyebrow: 'Approved',
+      title: 'Profile active',
+      desc: 'Your delivery profile has cleared admin verification and is ready for live pickup assignments.',
+    },
+    {
+      icon: Bike,
+      eyebrow: 'Next',
+      title: 'Wait for orders',
+      desc: 'When a meal pickup is assigned, this setup view will be replaced by the live request and quick-view cards.',
+    },
+  ]
 
-  const dismissBanner = () => {
-    localStorage.setItem('hme_delivery_verified_seen', 'true')
-    setShowVerifiedBanner(false)
-  }
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {cards.map((card) => {
+        const Icon = card.icon
 
+        return (
+          <div
+            key={card.title}
+            className="rounded-[26px] border border-emerald-100 bg-white p-5 shadow-[var(--theme-shadow-card)] sm:p-6"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  {card.eyebrow}
+                </p>
+                <h3 className="mt-2 text-[26px] font-bold leading-tight text-[var(--theme-text)]">
+                  {card.title}
+                </h3>
+              </div>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-[var(--theme-shadow-soft)]">
+                <Icon size={21} />
+              </span>
+            </div>
+
+            <p className="mt-4 text-[13px] leading-6 text-[var(--theme-muted)]">
+              {card.desc}
+            </p>
+
+            <div className="mt-5 rounded-[20px] border border-emerald-100 bg-emerald-50/70 px-4 py-3">
+              <p className="text-sm font-semibold text-[var(--theme-text)]">
+                Delivery workspace is ready
+              </p>
+              <p className="mt-1 text-[12.5px] leading-5 text-[var(--theme-muted)]">
+                Keep the dashboard open to receive incoming assignments in real time.
+              </p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function DeliveryVerificationWorkspace({ status = 'pending', rejectionReason = '', onReregister, activeOrders = [] }) {
   const isApproved = status === 'approved'
   const isRejected = status === 'rejected'
+  const hasAssignedOrders = isApproved && Array.isArray(activeOrders) && activeOrders.length > 0
   const statusLabel = isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending'
   const approvedAccent = isApproved ? 'text-emerald-700' : 'text-[var(--theme-accent)]'
   const approvedPanelBorder = isApproved ? 'border-emerald-100' : 'border-[var(--theme-chip-border)]'
@@ -319,16 +346,8 @@ function DeliveryVerificationWorkspace({ status = 'pending', rejectionReason = '
       transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
       className="grid gap-4"
     >
-      {isApproved && showVerifiedBanner && (
+      {isApproved && !hasAssignedOrders && (
         <div className={`relative overflow-hidden rounded-[30px] border ${approvedPanelBorder} ${approvedPanelBg} p-4 shadow-[var(--theme-shadow-card)] sm:p-5`}>
-          <button
-            type="button"
-            onClick={dismissBanner}
-            className="absolute right-4 top-4 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/50 text-emerald-600 transition hover:bg-white hover:shadow-sm"
-            title="Dismiss"
-          >
-            <XCircle size={18} />
-          </button>
           <div className="rounded-[24px] border border-emerald-100 bg-[rgba(255,255,255,0.76)] p-5 shadow-[0_8px_40px_rgba(16,185,129,0.08)] backdrop-blur-sm sm:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-3xl">
@@ -402,33 +421,10 @@ function DeliveryVerificationWorkspace({ status = 'pending', rejectionReason = '
         </div>
       )}
 
-      {isApproved && !showVerifiedBanner && (
-        <div className="rounded-[26px] border border-orange-100 bg-orange-50/70 p-5 shadow-[var(--theme-shadow-soft)]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-orange-500 shadow-[var(--theme-shadow-soft)]">
-                <ShieldCheck size={19} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[var(--theme-text)]">Delivery profile is active</p>
-                <p className="mt-1 text-[12.5px] leading-5 text-[var(--theme-muted)]">
-                  You are ready for live assignments. Incoming requests will appear below.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-orange-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-orange-600 shadow-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
-              </span>
-              Live Status
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isApproved ? (
-        <ActiveOrderRequest theme={showVerifiedBanner ? 'emerald' : 'orange'} />
+      {hasAssignedOrders ? (
+        <ActiveOrderRequest theme="orange" orders={activeOrders} />
+      ) : isApproved ? (
+        <DeliveryApprovedOverview />
       ) : (
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <div className={`rounded-[26px] border ${isApproved ? 'border-emerald-100' : 'border-[var(--theme-chip-border)]'} bg-white p-5 shadow-[var(--theme-shadow-card)] sm:p-6`}>

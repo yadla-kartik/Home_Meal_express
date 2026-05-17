@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
-import { deliveryCookieCheck, getDeliveryReviewStatus } from '../../../services/deliveryAuthService'
+import { deliveryCookieCheck, getAvailableDeliveryOrders, getDeliveryReviewStatus } from '../../../services/deliveryAuthService'
 import DeliveryPopuplogin from './components/DeliveryPopuplogin'
 import DeliveryRegisterWorkspace from './components/DeliveryRegisterWorkspace'
 import DeliveryVerificationWorkspace from './components/DeliveryVerificationWorkspace'
@@ -17,6 +17,7 @@ const DeliveryDashboard = () => {
   const [reviewStatus, setReviewStatus] = useState('pending')
   const [rejectionReason, setRejectionReason] = useState('')
   const [deliveryId, setDeliveryId] = useState('')
+  const [activeOrders, setActiveOrders] = useState([])
   const [showPopup, setShowPopup] = useState(false)
   const lastRealtimeUpdateRef = useRef(0)
 
@@ -42,6 +43,12 @@ const DeliveryDashboard = () => {
 
         setReviewStatus(reviewRes?.status || 'pending')
         setRejectionReason(reviewRes?.rejectionReason || '')
+        if ((reviewRes?.status || 'pending') === 'approved') {
+          const ordersRes = await getAvailableDeliveryOrders()
+          if (isMounted && ordersRes?.success) {
+            setActiveOrders(Array.isArray(ordersRes.data) ? ordersRes.data : [])
+          }
+        }
         return
       }
 
@@ -88,13 +95,29 @@ const DeliveryDashboard = () => {
       setShowPopup(false)
     }
 
+    const handleAssignedOrder = (payload) => {
+      const nextOrder = payload?.order || payload
+      if (!nextOrder?.id) return
+
+      setActiveOrders((prev) => {
+        const exists = prev.some((order) => order.id === nextOrder.id)
+        return exists
+          ? prev.map((order) => (order.id === nextOrder.id ? { ...order, ...nextOrder } : order))
+          : [nextOrder, ...prev]
+      })
+    }
+
     socket.on('delivery:approval-updated', handleReviewStatus)
     socket.on('delivery:review-status', handleReviewStatus)
+    socket.on('delivery:order-assigned', handleAssignedOrder)
+    socket.on('delivery:new-order', handleAssignedOrder)
 
     return () => {
       socket.off('connect', joinDeliveryRoom)
       socket.off('delivery:approval-updated', handleReviewStatus)
       socket.off('delivery:review-status', handleReviewStatus)
+      socket.off('delivery:order-assigned', handleAssignedOrder)
+      socket.off('delivery:new-order', handleAssignedOrder)
       socket.disconnect()
     }
   }, [deliveryId])
@@ -112,6 +135,7 @@ const DeliveryDashboard = () => {
           <DeliveryVerificationWorkspace
             status={reviewStatus}
             rejectionReason={rejectionReason}
+            activeOrders={activeOrders}
             onReregister={() => navigate('/delivery/register')}
           />
         ) : (
