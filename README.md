@@ -80,4 +80,6 @@ This project is built for educational purposes as part of a college project subm
 
 ---
 
+![Visitor Count](https://komarev.com/ghpvc/?username=yadla-kartik&color=FF6B35&style=for-the-badge&label=REPO+VISITORS)
+
 <p align="center">Made with ❤️ for train travelers across India</p>
